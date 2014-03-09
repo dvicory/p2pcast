@@ -41,6 +41,16 @@ var User = {
       type: 'string',
       required: true,
       minLength: 4
+    },
+
+    toJSON: function userToJSON(arg) {
+      var obj = this.toObject();
+
+      if (sails.config.environment === 'development') {
+	return obj;
+      } else {
+	return _.pick(obj, 'id', 'email', 'createdAt', 'updatedAt');
+      }
     }
   }
 };

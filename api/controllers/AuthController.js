@@ -13,13 +13,14 @@ var Auth = {
     Promise.promisifyAll(User);
 
     var email = req.param('email');
+    var challenge = req.param('password');
 
     User.findOneByEmailAsync(email).then(function(user) {
       if (!user) {
 	sails.log.info('Auth#login: Received invalid login, no user', email);
         res.json({ error: 'User not found' }, 404);
       } else {
-        bcrypt.compareAsync(req.param('password'), user.password).then(function(match) {
+        bcrypt.compareAsync(challenge, user.password).then(function(match) {
           if (match) {
             // passwords match, set session
             req.session.user = user.id;

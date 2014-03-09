@@ -18,7 +18,13 @@ var Channel = {
     owner: {
       model: 'User',
       required: true
-    }
+    },
+
+		peers: {
+			collection: 'Peer',
+			via: 'channel'
+		}
+
   }
 };
 

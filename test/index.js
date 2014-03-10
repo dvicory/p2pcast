@@ -20,7 +20,7 @@ before(function beforeAll(done) {
     },
     port: 9999,
     adapters: {
-      default: 'memory'
+      default: 'test'
     }
   }, function(err, sails) {
     if (err) return done(err);

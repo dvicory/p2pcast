@@ -6,7 +6,7 @@
  */
 
 var ChannelController = {
-  browse: function(req, res) {
+  index: function(req, res) {
     
     Channel.find().populate('owner').exec(function(err, channels) {
       if (err) { 
@@ -29,17 +29,18 @@ var ChannelController = {
   },
   
   show: function(req, res) {
-
+    
     Channel.findOneById(req.param('id')).populate('owner').exec(function(err, channel) {
       if (err) { 
         sails.log.error('Channel#show: ', err);
         res.serverError('DB error'); 
       }
 
-      if (!channel) {
+      if (!channel || !channel.name) {
         res.notFound('Channel Not Found');
       }
-
+      
+      var isBroadcaster = false;
       if (req.wantsJSON || req.isSocket) { 
         return res.json({
           channel: channel
@@ -48,7 +49,8 @@ var ChannelController = {
       } else {
         return res.view({
           channel: channel,
-          title: channel.name
+          title: channel.name,
+          isBroadcaster: ( channel.owner.id === req.session.user )
         }); 
       }   
     });

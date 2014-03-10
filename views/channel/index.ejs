@@ -11,13 +11,12 @@
       <tr>
         <% _.each(channels, function (channel) { %>
         <% if (!channel.owner) return true; %>
-        <td><%= channel.name %></td>
-        <td><%= channel.owner.email %></td>
+        <td><a href='#'/><%= channel.name %></td>
+        <td><%= channel.owner.name %></td>
       </tr>
       <% }) %>
     </table>
     <% } else { %>
     <h2><small>No Channels Available</small></h2>
     <% } %>
-  <%- partial('partials/footer') %>
 </div>

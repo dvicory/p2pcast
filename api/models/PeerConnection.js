@@ -42,8 +42,8 @@ var PeerConnection = {
     getPeerEndpoint: function getPeerEndpoint(selfPeer) {
       var resolver = Promise.pending();
 
-      if (!_.isObject(selfPeer) || !(selfPeer instanceof Peer)) {
-        resolver.reject(new Error('selfPeer is not a Peer'));
+      if (!_.isObject(selfPeer)) {
+        resolver.reject(new Error('selfPeer is not an object'));
       }
 
       // what is the peer's endpoint id?

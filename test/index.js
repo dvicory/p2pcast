@@ -11,6 +11,7 @@ var fixtures;
 global.assert = assert;
 global.expect = expect;
 global.fixtures = fixtures;
+global.Promise = Promise;
 
 // global before hook
 before(function beforeAll(done) {

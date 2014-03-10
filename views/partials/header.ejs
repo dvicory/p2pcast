@@ -35,17 +35,17 @@
              <form role="form">
                <fieldset class='textbox' style="width: ; padding:10px;">
                 <div class="form-group">
-                  <label for="exampleInputEmail1">Email address</label>
-                  <input type="email" class="form-control" id="exampleInputEmail1" placeholder="Email">
+                  <label for="emailInput">Email address</label>
+                  <input type="email" class="form-control" id="email" placeholder="Email">
                 </div>
                 <div class="form-group">
-                  <label for="password input">Password</label>
-                  <input type="password" class="form-control" id="password input" placeholder="Password">
+                  <label for="passwordInput">Password</label>
+                  <input type="password" class="form-control" id="password" placeholder="Password">
                 </div>
                 <input id="user_remember_me" style="float: left; margin-right: 10px;" type="checkbox" name="user[remember_me]" value="1" />
                 <label class="string optional" for="user_remember_me"> Remember me</label>
                 <li class="divider"></li>
-                <input class="btn btn-primary" style="clear: left; width: 100%; height: 32px; font-size: 13px;" type="submit" name="commit" value="Sign In" />
+                <input class="btn btn-primary" style="clear: left; width: 100%; height: 32px; font-size: 13px;"  value="Sign In" id="login" />
               </fieldset>
             </form>
           </div>
@@ -55,13 +55,20 @@
       <!-- Handle login redirect -->
       <script>
         $('#login').click(function() { 
-          $.post(
-           '/login',
-           function(res) {
-            res.redirect('back');
-            }
-          );
-          location.reload(true); 
+          var email = $("#email").val();
+          var password = $("#password").val();
+          if (email && password) {
+            $.post(
+              '/login',
+              {email: email, password: password },
+              function (res) {
+                res.redirect('/');
+              }
+              );
+            location.reload(false);
+          } else {
+            alert("A username and password is required");
+          }
         });
       </script>
 
@@ -84,7 +91,7 @@
         '/logout',
         function(res){
          res.redirect('/'); 
-        }
+       }
        );
        location.reload(true);
      });

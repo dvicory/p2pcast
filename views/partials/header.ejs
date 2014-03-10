@@ -8,7 +8,7 @@
           <span class="icon-bar"></span>
           <span class="icon-bar"></span>
         </button>
-        <a class="navbar-brand" href="#">p2pcast</a>
+        <a class="navbar-brand" href="\">p2pcast</a>
       </div>
 
       <!-- Collect the nav links, forms, and other content for toggling --> 
@@ -17,7 +17,56 @@
           <li><a href="/">Home</a></li>
           <li class="active"><a href="#">Channel</a></li>
           <li><a href="/channel">Browse</a></li>
+
         </ul>
+
+        <!--
+          Dropdown login menu
+          -->
+         <ul class="nav navbar-nav navbar-right">
+            <li class="dropdown" id="menu1">
+             <a class="dropdown-toggle" data-toggle="dropdown" href="#menu1">
+               Login
+                <b class="caret"></b>
+             </a>
+             <div class="dropdown-menu">
+               <form style="margin: 0px" accept-charset="UTF-8" action="/sessions" method="post">
+                 <fieldset class='textbox' style="padding:10px">
+                   <input style="margin-top: 8px" type="text" placeholder="Username" />
+                   <input style="margin-top: 8px" type="password" placeholder="Passsword" />
+                   <input class="btn-primary" name="commit" type="submit" value="Log In" />
+                 </fieldset>
+               </form>
+             </div>
+           </li>
+          </ul>
+
+        <!--
+          Used by the dropdown menu
+          -->
+          <script src="js/jquery.js"></script>
+          <script src="js/bootstrap.min.js"></script>
+          <script language="javascript">
+            $('.dropdown-toggle').dropdown();
+            $('.dropdown-menu').find('form').click(function (e) {
+               e.stopPropagation();
+            });
+          </script>
+
+         <ul class="nav navbar-nav navbar-right">
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span> Register <b class="caret"></b></a>
+              <ul class="dropdown-menu">
+                <li><a href="#">Set max viewers</a></li>
+                <li><a href="#">Enable chat</a></li>
+                <li class="divider"></li>
+                <li><a href="#">Release channel name</a></li>
+              </ul>
+            </li>
+          </ul>
+
+          <ul> </ul>
+
         <% if (isBroadcaster) { %>
         <ul class="nav navbar-nav navbar-right">
           <li class="dropdown">

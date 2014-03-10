@@ -20,10 +20,10 @@ var Channel = {
       required: true
     },
 
-		peers: {
-			collection: 'Peer',
-			via: 'channel'
-		}
+    peers: {
+      collection: 'Peer',
+      via: 'channel'
+    }
 
   }
 };

@@ -1,5 +1,6 @@
 <div class="container">
-  <h1>Channel List</h1>  
+  <h1>Channel List</h1>
+    <% if (channels.length > 0) { %>  
     <table class="table table-hover">
       <thead>
         <tr>
@@ -9,10 +10,14 @@
       </thead>
       <tr>
         <% _.each(channels, function (channel) { %>
+        <% if (!channel.owner) return true; %>
         <td><%= channel.name %></td>
         <td><%= channel.owner.email %></td>
       </tr>
       <% }) %>
     </table>
+    <% } else { %>
+    <h2><small>No Channels Available</small></h2>
+    <% } %>
   <%- partial('partials/footer') %>
 </div>

@@ -31,6 +31,12 @@ var User = {
   beforeUpdate: _.partialRight(hashPasswordHook, true),
 
   attributes: {
+    name: {
+      type: 'string',
+      required: true,
+      minLength: 2
+    },
+
     email: {
       type: 'email',
       unique: true,

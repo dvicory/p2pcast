@@ -36,7 +36,7 @@ var ChannelController = {
         res.serverError('DB error'); 
       }
 
-      if (!channel || !channel.name) {
+      if (typeof channel === 'undefined') {
         res.notFound('Channel Not Found');
       }
       

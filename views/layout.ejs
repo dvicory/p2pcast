@@ -41,8 +41,11 @@
   </head>
 
   <body>
-    <%- body %>
-
+    <div class="container">
+      <%- partial('partials/header.ejs', { isBroadcaster: false } ) %>
+      <%- body %>
+      <%- partial('partials/footer.ejs') %>
+    </div>
 
 
     <!--
@@ -102,6 +105,6 @@
     <script src="/js/bootstrap.min.js"></script>
     <!--SCRIPTS END-->
   
-  <%- partial('partials/footer.ejs') %>
+
   </body>
 </html>

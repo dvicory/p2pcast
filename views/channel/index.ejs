@@ -1,9 +1,18 @@
-<div>
-  <h1>List of channels</h1>
-
-  <ul>
-    <% _.each(channels, function (channel) { %>
-    <li><%= channel.name %></li>
-    <% }) %>
-  </ul>
+<div class="container">
+  <h1>Channel List</h1>  
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <td><Strong>Channel Name</Strong></td>
+          <td><Strong>Owner</Strong></td>
+        </tr>
+      </thead>
+      <tr>
+        <% _.each(channels, function (channel) { %>
+        <td><%= channel.name %></td>
+        <td><%= channel.owner.email %></td>
+      </tr>
+      <% }) %>
+    </table>
+  <%- partial('partials/footer') %>
 </div>

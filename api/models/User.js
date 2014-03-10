@@ -47,9 +47,9 @@ var User = {
       var obj = this.toObject();
 
       if (sails.config.environment === 'development') {
-	return obj;
+        return obj;
       } else {
-	return _.pick(obj, 'id', 'email', 'createdAt', 'updatedAt');
+        return _.pick(obj, 'id', 'email', 'createdAt', 'updatedAt');
       }
     }
   }

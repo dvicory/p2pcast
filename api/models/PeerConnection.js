@@ -14,6 +14,10 @@ const PeerConnectionStates = [ 'reserved', 'connecting',
 var PeerConnection = {
   adapter: 'memory',
 
+  autosubscribe: ['create', 'update', 'destroy', 'message',
+		  'add:initiator', 'add:receiver',
+		  'remove:initiator', 'remove:receiver'],
+
   types: {
     state: function(state) {
       return _.contains(PeerConnectionStates, state);
@@ -56,13 +60,20 @@ var PeerConnection = {
       }
 
       // TODO figure out how to use promise to do this resolver
-      Peer.findOneById(endpointId, function(err, peer) {
+      Peer.findOneById(endpointId).populate('parent').populate('children').exec(function(err, peer) {
 	if (err) resolver.reject(err);
 	else resolver.resolve(peer);
       });
 
       return resolver.promise;
     }
+  },
+
+  // this callback is executed when a peer is removed
+  // this can happen when either the socket associated with the peer is destroyed
+  // or for some reason they are removed from this peer connection
+  afterPublishRemove: function afterPeerPublishRemove(id, attribute, idRemoved, req) {
+    sails.log.verbose('PeerConnection#afterPublishRemove: id', id, 'attribute', attribute, 'idRemoved', idRemoved, 'req', req);
   }
 };
 

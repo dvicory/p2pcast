@@ -39,7 +39,7 @@ var Peer = {
       via: 'receiver'
     },
 
-    canRebroadcast: function() {
+    canRebroadcast: function canRebroadcast() {
       // broadcasters can always rebroadcast
       // TODO is this really true? should broadcaster have a parent peerconnection to itself?
       // this would mean that if their camera goes down their self peerconnection goes down too

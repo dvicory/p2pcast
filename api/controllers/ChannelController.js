@@ -7,25 +7,24 @@
 
 var ChannelController = {
   index: function(req, res) {
-    Channel.find().populate('owner').exec( function(err, result) {
-//      sails.log.info(result);
-      
-      if(err) sails.log.error(err);
-      
+    Channel.find().populate('owner').exec(function(err, channels) {
+      if (err) { 
+        sails.log.error('Channel#index: ', err);
+        res.serverError('DB error'); 
+      }
+
       if (req.wantsJSON || req.isSocket) { 
         return res.json({
-          channels: result
+          channels: channels
         });
 
-      }
-      else {
+      } else {
         return res.view({
-          channels: result
+          channels: channels
         });
-
       }
-
     }); 
   }
 }
+
 module.exports = ChannelController;

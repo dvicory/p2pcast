@@ -9,8 +9,8 @@
   <% if ( typeof req.session.user !== 'undefined' ) { %>
   <form class="form-inline text-center" role="form" action="/channel/create" method="post">
     <div class="form-group">
-      <input type="text" class="form-control input-small" id="name" name="name" placeholder="Enter channel name" /><br>
       <input type="submit" name="broadcaster" class="btn btn-success btn-lg btn-sucess" style="padding:10px; margin: 10px;" value="Broadcast Now!"/>
+      <input type="text" class="form-control input-small" id="name" name="name" placeholder="Enter channel name" /><br>
     </div>
       <% } else { %>
       <center>
@@ -20,6 +20,31 @@
   </form>
   
 </div>
+
+<!--
+    Javascript for handling displaying the register dropdown when non register uses click broadcast button
+
+  -->  
+<script>
+$(document).ready( function(){
+
+    $('#broadcaster').click(function(event){
+        event.stopPropagation();
+        $('#m2').toggle();
+        active_class: 'open'
+    });
+
+    $(document).click(function(){
+        $('#m2').hide();
+           // $('#registermenu').
+       });
+
+    $('#registermenu').click(function(event){
+           // event.stopPropagation();
+           $('#m2').toggle();
+       });
+});
+</script>
 
 <div class="jumbotron">
   <center>

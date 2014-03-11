@@ -24,7 +24,7 @@
         <!--
           Dropdown login menu, show only if the user is not logged in
         -->
-        <% if ( !req.session.user ) { %>
+        <% if ( typeof req.session.user === 'undefined' ) { %>
         <ul class="nav navbar-nav navbar-right">
 
           <li class="dropdown" id="registermenu">

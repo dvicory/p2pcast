@@ -9,10 +9,18 @@
 <form class="form-inline text-center" role="form">
   <div class="form-group">
 <label class="sr-only" for="channelInputName">Channel name</label>
+
   </div>
-  <a class="btn btn-success btn-lg btn-sucess" href="#">Broadcast Now!</a>
+  <a id ="broadcaster" class="btn btn-success btn-lg btn-sucess" href="#">Broadcast Now!</a> 
+
+<form>
+    <% if ( req.session.user ) { %>
+    <input type="text" class="form-control input-small" id="channelInputName" placeholder="Enter channel name">
+
+    <% } %>
 </form>
 </div>
+v
 
 
 <div class="jumbotron">

@@ -32,45 +32,25 @@
              <b class="caret"></b>
            </a>
            <div class="dropdown-menu">
-             <form role="form">
+             <form role="form" action="/login" method="post">
                <fieldset class='textbox' style="width: ; padding:10px;">
                 <div class="form-group">
                   <label for="emailInput">Email address</label>
-                  <input type="email" class="form-control" id="email" placeholder="Email">
+                  <input type="email" class="form-control" name="email" id="email" placeholder="Email">
                 </div>
                 <div class="form-group">
                   <label for="passwordInput">Password</label>
-                  <input type="password" class="form-control" id="password" placeholder="Password" onkeydown="if(event.keyCode==13) $('#login').trigger('click');">
+                  <input type="password" class="form-control" name="password" id="password" placeholder="Password">
                 </div>
                 <input id="user_remember_me" style="float: left; margin-right: 10px;" type="checkbox" name="user[remember_me]" value="1" />
                 <label class="string optional" for="user_remember_me"> Remember me</label>
                 <li class="divider"></li>
-                <input class="btn btn-primary" style="clear: left; width: 100%; height: 32px; font-size: 13px;" value="Sign In" id="login"  />
+                <input class="btn btn-primary" style="clear: left; width: 100%; height: 32px; font-size: 13px;" value="Sign In" id="login" type="submit" />
               </fieldset>
             </form>
           </div>
         </li>
       </ul>
-
-      <!-- Handle login redirect -->
-      <script>
-        $('#login').click(function() { 
-          var email = $("#email").val();
-          var password = $("#password").val();
-          if (email && password) {
-            $.post(
-              '/login',
-              {email: email, password: password },
-              function (res) {
-                res.redirect('back');
-              }
-              );
-            location.reload(true);
-          } else {
-            alert("A username and password is required");
-          }
-        });
-      </script>
 
 
       <ul class="nav navbar-nav navbar-right">
@@ -80,55 +60,28 @@
            <b class="caret"></b>
          </a>
          <div class="dropdown-menu">
-           <form role="form">
+           <form role="form" action="/user/create" method="post">
              <fieldset class='textbox' style="width: ; padding:10px;">
               <div class="form-group">
                 <label for="newNameInput">Name</label>
-                <input type="text" class="form-control" id="newName" placeholder="Name">
+                <input type="text" class="form-control" name="name" id="newName" placeholder="Name">
               </div>
               <div class="form-group">
                 <label for="newEmailInput">Email address</label>
-                <input type="text" class="form-control" id="newEmail" placeholder="Email">
+                <input type="text" class="form-control" name="email" id="newEmail" placeholder="Email">
               </div>
               <div class="form-group">
                 <label for="newPasswordInput">Password</label>
-                <input type="password" class="form-control" id="newPassword" placeholder="Password" onkeydown="if(event.keyCode==13) $('#signup').trigger('click');">
+                <input type="password" class="form-control" name="password" id="newPassword" placeholder="Password">
               </div>
               <li class="divider"></li>
-              <input class="btn btn-primary" style="clear: left; width: 100%; height: 32px; font-size: 13px;" value="Sign Up" id="signup" />
+              <input class="btn btn-primary" style="clear: left; width: 100%; height: 32px; font-size: 13px;" value="Sign Up" id="signup" type="submit" />
             </fieldset>
           </form>
         </div>
       </li>
     </ul>
 
-    <!-- Handle register + login redirect -->
-    <script>
-      $('#signup').click(function() { 
-        var email = $("#newEmail").val();
-        var password = $("#newPassword").val();
-        var name = $("#newName").val();
-        if (name && email && password) {
-          $.post(
-            '/user/create',
-            {name: name, email: email, password: password },
-            function (res) {
-              res.redirect('/');
-            }
-            );
-          $.post(
-            '/login',
-            {email: email, password: password },
-            function (res) {
-              res.redirect('/');
-            }
-            );
-          location.reload(true);
-        } else {
-          alert("A name, email and password is required");
-        }
-      });
-    </script>
 
     <% } else { %> 
     <ul class="nav navbar-nav navbar-right">
@@ -146,11 +99,10 @@
       $('#logout').click(function() { 
        $.post(
         '/logout',
-        function(res){
-         res.redirect('/'); 
-       }
+        function(){
+          location.reload(true);
+        }
        );
-       location.reload(true);
      });
     </script>
 

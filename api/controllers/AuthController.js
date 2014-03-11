@@ -5,10 +5,10 @@
  * @docs        :: http://sailsjs.org/#!documentation/controllers
  */
 
-var Promise = require('bluebird');
-var bcrypt = Promise.promisifyAll(require('bcrypt-nodejs'));
+ var Promise = require('bluebird');
+ var bcrypt = Promise.promisifyAll(require('bcrypt-nodejs'));
 
-var Auth = {
+ var Auth = {
   login: function(req, res) {
     Promise.promisifyAll(User);
 
@@ -24,14 +24,14 @@ var Auth = {
           if (match) {
             // passwords match, set session
             req.session.user = user.id;
-	    req.session.save();
-	    res.redirect('back');
+            req.session.save();
+            res.redirect('back');
           } else {
             // handle invalid password
             if (req.session.user) {
               req.session.user = null;
               delete req.session.user;
-	      req.session.save();
+              req.session.save();
             }
 
             sails.log.info('Auth#login: Received invalid password attempt', email);
@@ -53,8 +53,8 @@ var Auth = {
       req.session.user = null;
       delete req.session.user;
     }
-
-    res.send({ session: req.session });
+    
+    res.redirect('back');
   }
 };
 

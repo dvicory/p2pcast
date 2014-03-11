@@ -25,7 +25,7 @@ var Auth = {
             // passwords match, set session
             req.session.user = user.id;
 	    req.session.save();
-            res.json(user);
+	    res.redirect('back');
           } else {
             // handle invalid password
             if (req.session.user) {

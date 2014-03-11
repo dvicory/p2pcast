@@ -53,7 +53,7 @@
       req.session.user = null;
       delete req.session.user;
     }
-    
+
     res.redirect('back');
   }
 };

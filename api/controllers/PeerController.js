@@ -15,58 +15,97 @@ var PeerController = {
 
     var socketId = req.socket.id;
     var channelId = req.param('channel');
-    var isBroadcaster = false;
+    var canBroadcast = false;
+    var isBroadcaster = req.param('broadcaster') || false;
 
     // check the channel exists
-    Channel.findOneById(channelId)
-      .populate('owner')
-      .then(function(channel) {
-	sails.log.info('Peer#create: then 1', channel);
+    var step1 = function(channelId) {
+      var resolver = Promise.defer();
 
-	// if it doesn't exist, don't try to be a peer for it
-	if (!channel) {
-	  sails.log.warn('Socket', socketId, 'requested to be a peer for nonexistent channel', channelId);
-	  return res.notFound('Can not be a peer for a nonexistent channel');
-	}
+      sails.log('channelId', channelId);
 
-	// if we're the owner we're also a broadcaster
-	if (channel.owner.id === req.session.user.id) {
-	  isBroadcaster = true;
-	}
-      })
-      .fail(function(err) {
-	if (err) {
-	  sails.log.error('Socket', socketId, 'requested to be a peer for channel', channelId, ', errored with', err);
-	  return res.serverError('DB error');
-	}
-      });
+      Channel.findOneById(channelId)
+	.populate('owner')
+	.exec(function(err, channel) {
+	  sails.log.info('Peer#create: then 1', channel);
+
+	  if (err) resolver.reject(err);
+
+	  // if it doesn't exist, don't try to be a peer for it
+	  if (!channel) {
+	    /*
+	    sails.log.warn('Socket', socketId, 'requested to be a peer for nonexistent channel', channelId);
+	    return res.notFound('Can not be a peer for a nonexistent channel');
+	    */
+	    resolver.reject(new Error('Can not be a peer for a nonexistent channel'));
+	  }
+
+	  // if we're the owner we can broadcast
+	  if (req.session.user && channel.owner.id === req.session.user.id) {
+	    canBroadcast = true;
+	  }
+
+	  resolver.resolve(socketId);
+	});
+
+      return resolver.promise;
+    };
 
     // find, or create the peer if necessary
-    Peer.findOrCreate({ socketID: socketId },
-		      { socketID: socketId, channel: channelId, broadcaster: isBroadcaster })
+    var step2 = function(socketId) {
+      var resolver = Promise.defer();
+
+      sails.log.info('socketId', socketId, 'channel', channelId, 'isBroadcaster', isBroadcaster, 'canBroadcast', canBroadcast);
+
+      Peer.findOrCreate({ socketID: socketId },
+			{ socketID: socketId, channel: channelId, broadcaster: isBroadcaster && canBroadcast })
+	.exec(function(err, peer) {
+	  sails.log.info('Peer#create: then 2', peer);
+
+	  if (err) resolver.reject(err);
+
+	  if (!peer) {
+	    // WTF?
+	    /*
+	    sails.log.error('Tried to find or create peer on socket', socketId, 'for channel', channelId, 'which could not find or create!');
+	    return res.serverError('DB error');
+	    */
+	    sails.log.error('Peer#create: findOrCreate');
+	    resolver.reject(new Error('DB error'));
+	  }
+
+	  // get rid of parent
+	  peer.parent = null;
+
+	  // set channel
+	  peer.channel = channelId;
+
+	  // set broadcaster
+	  peer.broadcaster = isBroadcaster && canBroadcast;
+	  peer.save();
+
+	  // subscribe this socket to updates on his peer model instance
+	  Peer.subscribe(req.socket, peer);
+
+	  resolver.resolve(peer);
+	});
+
+      return resolver.promise;
+    };
+
+    sails.log.info('beforeSteps');
+
+    step1(channelId).then(step2)
       .then(function(peer) {
-	sails.log.info('Peer#create: then 2', peer);
-
-	if (!peer) {
-	  // WTF?
-	  sails.log.error('Tried to find or create peer on socket', socketId, 'for channel', channelId, 'which could not find or create!');
-	  return res.serverError('DB error');
-	}
-
-	// set broadcaster
-	peer.broadcaster = isBroadcaster;
-	peer.save();
-
-	// subscribe this socket to updates on his peer model instance
-	Peer.subscribe(req.socket, peer);
-
-	res.json(peer);
+	return res.json(peer);
       })
-      .fail(function(err) {
-	if (err) {
-	  sails.log.error('Tried to find or create peer on socket', socketId, 'for channel', channelId, 'errored with', err);
-	  return res.serverError('DB error');
-	}
+      .error(function(err) {
+	sails.log.error('Peer#create: Socket', socketId, 'requested peer creation;', err.message);
+        return res.json({ status: 404, message: err.message });
+      })
+      .catch(function(e) {
+	sails.log.error(e);
+        return res.serverError('Internal server error');
       });
   },
 

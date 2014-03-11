@@ -41,16 +41,39 @@ module.exports.sockets = {
       }
 
       _.each(peers, function(peer) {
+	var previousPeer = peer.toObject();
+
 	peer.destroy(function(err) {
 	  if (err) {
-	    sails.log.error('#onDisconnect destroy peers', err);
+	    sails.log.error('#onDisconnect: Can not destroy peer', peer.id, 'with error', err);
 	    return true;
 	  }
 
-	  sails.log.verbose('#onDisconnect destroying peer', peer.id);
+	  sails.log.info('#onDisconnect: Destroyed peer', peer.id);
+	  /*
+	  peer.parent.destroy(function(err) {
+	    if (err) {
+              sails.log.error("#onDisconnect: Can not destroy peer's parent", peer.id, 'with error', err);
+              return true;
+	    }
+
+	    sails.log.verbose("#onDisconnect: Destroyed peer's parent", peer.parent.id);
+	  });
+
+	  _.each(peer.children, function(child) {
+	    child.destroy(function(err) {
+              if (err) {
+		sails.log.error("#onDisconnect: Can not destroy peer's child", peer.id, 'with error', err);
+		return true;
+              }
+
+              sails.log.verbose("#onDisconnect: Destroyed peer's child", child.id);
+	    });
+	  });
+	  */
 	});
 
-	Peer.publishDestroy(peer.id, socket, { previous: peer });
+	Peer.publishDestroy(peer.id, socket, { previous: previousPeer });
       });
     });
   },

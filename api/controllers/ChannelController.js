@@ -4,6 +4,7 @@
  * @description ::
  * @docs        :: http://sailsjs.org/#!documentation/controllers
  */
+var Promise = require('bluebird');
 
 var ChannelController = {
   index: function(req, res) {
@@ -51,6 +52,30 @@ var ChannelController = {
         });
       }
     });
+  },
+
+  create: function(req, res) {
+    Promise.promisifyAll(Channel);
+
+    var name  = req.param('name');
+    var owner = req.param('owner');
+
+    if(!req.session.user) return res.json({ error: 'user not undefined'}, 500);
+    
+    Channel.createAsync({name: name, owner: req.session.user.id }).then(function(channel) {
+      if (!channel) {
+        sails.log.info('Channel#create: Channel already exists', name);
+        return res.json({ error: 'Channel already exists' }, 500);
+      }
+
+      return res.redirect('/channel/' + channel.id);
+
+    }).error(function(e) {
+      sails.log.error('Auth#create: DB error', e);
+      return res.json({ error: 'DB error' }, 500); 
+    });
+
+
   }
 
 }

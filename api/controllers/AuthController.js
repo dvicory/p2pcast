@@ -24,12 +24,14 @@ var Auth = {
           if (match) {
             // passwords match, set session
             req.session.user = user.id;
+	    req.session.save();
             res.json(user);
           } else {
             // handle invalid password
             if (req.session.user) {
               req.session.user = null;
               delete req.session.user;
+	      req.session.save();
             }
 
             sails.log.info('Auth#login: Received invalid password attempt', email);

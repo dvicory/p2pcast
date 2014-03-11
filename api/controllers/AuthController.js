@@ -23,7 +23,7 @@
         bcrypt.compareAsync(challenge, user.password).then(function(match) {
           if (match) {
             // passwords match, set session
-            req.session.user = user.id;
+            req.session.user = { id: user.id, name: user.name, email: user.email };
             req.session.save();
             res.redirect('back');
           } else {
@@ -53,7 +53,7 @@
       req.session.user = null;
       delete req.session.user;
     }
-    
+
     res.redirect('back');
   }
 };

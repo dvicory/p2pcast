@@ -27,7 +27,7 @@
         return res.json({ error: 'User already exists' }, 500);
       }
 
-      req.session.user = user.id;
+      req.session.user = { id: user.id, name: user.name, email: user.email };
       req.session.save();
       return res.redirect('back');
     }).error(function(e) {

@@ -32,7 +32,7 @@
              Register
              <b class="caret"></b>
            </a>
-           <div class="dropdown-menu">
+           <div class="dropdown-menu" id="m2">
              <form role="form" action="/user/create" method="post">
                <fieldset class='textbox' style="width: ; padding:10px;">
                 <div class="form-group">
@@ -53,7 +53,7 @@
             </form>
           </div>
         </li>
-
+        
 
         <li class="dropdown" id="loginmenu">
          <a class="dropdown-toggle" data-toggle="dropdown" href="#loginmenu">
@@ -94,14 +94,14 @@
     </ul>
     <!-- Handle logout redirect -->
     <script>
-      $('#logout').click(function() { 
-       $.post(
-        '/logout',
-        function(){
-          location.reload(true);
-        }
-        );
-     });
+    $('#logout').click(function() { 
+     $.post(
+      '/logout',
+      function(){
+        location.reload(true);
+      }
+      );
+   });
     </script>
 
     <% } %><!-- end else -->

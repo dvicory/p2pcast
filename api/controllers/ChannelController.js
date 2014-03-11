@@ -50,7 +50,7 @@ var ChannelController = {
         return res.view({
           channel: channel,
           title: channel.name,
-          isBroadcaster: ( channel.owner.id === req.session.user )
+          isBroadcaster: ( channel.owner.id === req.session.user.id )
         }); 
       }   
     });

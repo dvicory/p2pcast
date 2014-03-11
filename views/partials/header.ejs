@@ -86,7 +86,7 @@
     <% } else { %> 
     <ul class="nav navbar-nav navbar-right">
       <li class="dropdown">
-        <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span> Account <b class="caret"></b></a>
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span> <%= req.session.user.name %> <b class="caret"></b></a>
         <ul class="dropdown-menu">
           <li><a href="#" id="logout">Sign Out</a></li>
         </ul>
@@ -111,7 +111,7 @@
 
 
     <!-- check that channel is not undefined AND that the user is a broadcaster/channel owner -->
-    <% if ( (typeof channel !== 'undefined' && channel.owner.id === req.session.user) ) { %>
+    <% if ( (typeof channel !== 'undefined' && channel.owner.id === req.session.user.id) ) { %>
     <ul class="nav navbar-nav navbar-right">
       <li class="dropdown">
         <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span> Configure <b class="caret"></b></a>

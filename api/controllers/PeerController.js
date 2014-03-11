@@ -32,7 +32,7 @@ var PeerController = {
 	}
 
 	// if we're the owner we're also a broadcaster
-	if (channel.owner.id === req.session.user) {
+	if (channel.owner.id === req.session.user.id) {
 	  isBroadcaster = true;
 	}
       })

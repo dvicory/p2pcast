@@ -14,9 +14,11 @@ const PeerConnectionStates = [ 'reserved', 'connecting',
 var PeerConnection = {
   adapter: 'memory',
 
+  /*
   autosubscribe: ['create', 'update', 'destroy', 'message',
 		  'add:initiator', 'add:receiver',
 		  'remove:initiator', 'remove:receiver'],
+  */
 
   types: {
     state: function(state) {
@@ -72,8 +74,12 @@ var PeerConnection = {
   // this callback is executed when a peer is removed
   // this can happen when either the socket associated with the peer is destroyed
   // or for some reason they are removed from this peer connection
-  afterPublishRemove: function afterPeerPublishRemove(id, attribute, idRemoved, req) {
-    sails.log.verbose('PeerConnection#afterPublishRemove: id', id, 'attribute', attribute, 'idRemoved', idRemoved, 'req', req);
+  afterPublishRemove: function afterPeerConnectionPublishRemove(id, attribute, idRemoved, req) {
+    sails.log.info('PeerConnection#afterPublishRemove: id', id, 'attribute', /*attribute,*/ 'idRemoved', idRemoved, 'req', req);
+  },
+
+  afterPublishDestroy: function afterPeerConnectionPublishDestroy(id, attribute, idRemoved, req) {
+    sails.log.info('PeerConnection#afterPublishDestroy: id', id, 'attribute', /*attribute,*/ 'idRemoved', idRemoved, 'req', req);
   }
 };
 

@@ -40,12 +40,12 @@
                 </div>
                 <div class="form-group">
                   <label for="passwordInput">Password</label>
-                  <input type="password" class="form-control" id="password" placeholder="Password">
+                  <input type="password" class="form-control" id="password" placeholder="Password" onkeydown="if(event.keyCode==13) $('#login').trigger('click');">
                 </div>
                 <input id="user_remember_me" style="float: left; margin-right: 10px;" type="checkbox" name="user[remember_me]" value="1" />
                 <label class="string optional" for="user_remember_me"> Remember me</label>
                 <li class="divider"></li>
-                <input class="btn btn-primary" style="clear: left; width: 100%; height: 32px; font-size: 13px;"  value="Sign In" id="login" />
+                <input class="btn btn-primary" style="clear: left; width: 100%; height: 32px; font-size: 13px;" value="Sign In" id="login"  />
               </fieldset>
             </form>
           </div>
@@ -65,24 +65,81 @@
                 res.redirect('/');
               }
               );
-            location.reload(false);
+            location.reload(true);
           } else {
             alert("A username and password is required");
           }
         });
       </script>
 
-      <ul class="nav navbar-nav navbar-right">
-        <li>
-          <a href="#" ><span class="glyphicon glyphicon-cog"></span> Register  </a>
-        </li>
-      </ul>
-      <% } else { %> 
 
       <ul class="nav navbar-nav navbar-right">
-       <li>
-        <button type="button" class="btn btn-default navbar-btn" id="logout">Sign Out</button>
+        <li class="dropdown" id="menu2">
+         <a class="dropdown-toggle" data-toggle="dropdown" href="#menu2">
+           Register
+           <b class="caret"></b>
+         </a>
+         <div class="dropdown-menu">
+           <form role="form">
+             <fieldset class='textbox' style="width: ; padding:10px;">
+              <div class="form-group">
+                <label for="newNameInput">Name</label>
+                <input type="text" class="form-control" id="newName" placeholder="Name">
+              </div>
+              <div class="form-group">
+                <label for="newEmailInput">Email address</label>
+                <input type="text" class="form-control" id="newEmail" placeholder="Email">
+              </div>
+              <div class="form-group">
+                <label for="newPasswordInput">Password</label>
+                <input type="password" class="form-control" id="newPassword" placeholder="Password" onkeydown="if(event.keyCode==13) $('#signup').trigger('click');">
+              </div>
+              <li class="divider"></li>
+              <input class="btn btn-primary" style="clear: left; width: 100%; height: 32px; font-size: 13px;" value="Sign Up" id="signup" />
+            </fieldset>
+          </form>
+        </div>
       </li>
+    </ul>
+
+    <!-- Handle register + login redirect -->
+    <script>
+      $('#signup').click(function() { 
+        var email = $("#newEmail").val();
+        var password = $("#newPassword").val();
+        var name = $("#newName").val();
+        if (name && email && password) {
+          $.post(
+            '/user/create',
+            {name: name, email: email, password: password },
+            function (res) {
+              res.redirect('/');
+            }
+            );
+          $.post(
+            '/login',
+            {email: email, password: password },
+            function (res) {
+              res.redirect('/');
+            }
+            );
+          location.reload(true);
+        } else {
+          alert("A name, email and password is required");
+        }
+      });
+    </script>
+
+    <% } else { %> 
+    <ul class="nav navbar-nav navbar-right">
+      <li class="dropdown">
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span> Account <b class="caret"></b></a>
+        <ul class="dropdown-menu">
+          <li><a href="#" id="logout">Sign Out</a></li>
+        </ul>
+      </li>
+      <li class="divider-vertical"></li>
+      <li class="divider-vertical"></li>
     </ul>
     <!-- Handle logout redirect -->
     <script>
@@ -96,12 +153,12 @@
        location.reload(true);
      });
     </script>
-    
+
     <% } %>
 
 
 
-    <!-- check that channel is not undefined and that the user is a broadcaster/channel owner -->
+    <!-- check that channel is not undefined AND that the user is a broadcaster/channel owner -->
     <% if ( (typeof channel !== 'undefined' && channel.owner.id === req.session.user) ) { %>
     <ul class="nav navbar-nav navbar-right">
       <li class="dropdown">
@@ -109,10 +166,9 @@
         <ul class="dropdown-menu">
           <li><a href="#">Set max viewers</a></li>
           <li><a href="#">Enable chat</a></li>
-          <li class="divider"></li>
-          <li><a href="#">Release channel name</a></li>
         </ul>
       </li>
+      <li class="divider-vertical"></li>
       <li class="divider-vertical"></li>
     </ul>
     <% } %> <!-- end if -->

@@ -14,199 +14,168 @@ module.exports = {
     }
 
     var socketId = req.socket.id;
-    var initiatorPeerId;
 
     // first, we get the id of the one requesting a new peer connection
     // to do this, we find them in the peer table
-    var step1 = function(socketId) {
-      var resolver = Promise.defer();
+    var getPeerBySocketId = Promise.method(function(socketId) {
+      return Peer.findOneBySocketId(socketId)
+        .populate('channel')
+        .populate('connections')
+	.then(function(peer) {
+	  if (!peer) {
+	    return Promise.reject(res.notFound('Can not get a peer connection unless you are a peer'));
+	  }
 
-      Peer.findOneBySocketID(socketId)
-	.populate('channel')
-	.populate('parent')
-	.populate('children')
-        .exec(function(err, peer) {
-          if (err) resolver.reject(err);
-
-          if (!peer) {
-            resolver.reject(new Error('Can not get a peer connection unless you are a peer'));
-          }
-
-          resolver.resolve(peer);
-        });
-
-      return resolver.promise;
-    };
-    //var step1 = Peer.getPeerBySocketId;
+	  return peer;
+	});
+    });
 
     // second, we now have the initiator id
     // we will then select a peer for them
-    // TODO more complicated logic, duh
-    var step2 = function(initiatorPeer) {
+    var getPeerMatch = function(initiatorPeer) {
       sails.log.info('step2 initiator', initiatorPeer);
 
-      var resolver = Promise.defer();
-
-      Peer.find()
-	.where({ channel: initiatorPeer.channel.id })
-	.populate('channel')
-	.populate('parent')
-	.populate('children')
-        .exec(function(err, peers) {
-          if (err) resolver.reject(err);
-
-          if (!peers) {
-            resolver.reject(new Error('No peer connections available'));
-	  }
-
-	  // TODO more hacks
-	  // if a broadcaster wants a peer connection, that represents his camera "peer connection"
-	  // this presents a dilemna, do we return them a peer connection?
-	  // do we instead return them something special?
-
-	  // only choose peers that can rebroadcast
-	  // also, don't choose yourself
-	  sails.log.info('peers', peers);
-
-	  peers = _.filter(peers, function(peer) {
-	    sails.log.info('canRebroadcast', peer.canRebroadcast(), 'peer.id', peer.id, 'initiatorPeer.id', initiatorPeer.id);
-	    return peer.canRebroadcast() && peer.id !== initiatorPeer.id;
-	  });
-
-	  sails.log.info('peers2 narrowed to', peers);
-
-	  // now choose the one with the min number of children
-	  // but add some randomness
-	  var receiverPeer = _.min(_.shuffle(peers), function(peer) {
-	    return peer.children.length;
-	  });
-
-          if (receiverPeer === Infinity) {
-	    resolver.reject(new Error('No peer connections available'));
+      return Peer.find()
+        .where({ channel: initiatorPeer.channel.id })
+        .populate('connections')
+        .then(function(peers) {
+          if (!peers || peers.length === 0) {
+	    sails.log.error('step2 no peers', peers);
+            return Promise.reject(res.notFound('No peer connections found'));
           }
 
-	  sails.log.info('step2 receiverPeer', receiverPeer);
+          // only choose peers that can rebroadcast
+          // also, don't choose yourself
+          sails.log.info('peer match initial candidates', peers);
 
-          resolver.resolve([initiatorPeer, receiverPeer]);
+          peers = _.filter(peers, function(peer) {
+            sails.log.info('peer.id', peer.id, 'canRebroadcast', peer.canRebroadcast(),
+			   'initiatorPeer.id', initiatorPeer.id);
+            return peer.canRebroadcast() && peer.id !== initiatorPeer.id;
+          });
+
+          sails.log.info('peers narrowed to', peers);
+
+          // now choose the one with the min number of children
+          // but add some randomness
+	  /*
+          var receiverPeer = _.min(_.shuffle(peers), function(peer) {
+	    console.log('peer.id outbound length', peer.outbound.length);
+            return peer.outbound.length;
+          });
+	  */
+
+          var receiverPeer = _.min(_.shuffle(peers), function(peer) {
+            console.log('peer.id connections length', peer.connections.length);
+            return peer.getChildrenConnections().length;
+          });
+
+          if (receiverPeer === Infinity) {
+            return Promise.reject(res.notFound('No peer connections available'));
+          }
+
+          sails.log.info('candidate peer is', receiverPeer);
+
+          return [initiatorPeer, receiverPeer];
         });
-
-      return resolver.promise;
     };
 
     // finally, we will use that to hook them up together
-    var step3 = function(initiatorPeer, receiverPeer) {
-      sails.log.info('step3 receiver', receiverPeer);
+    var hookupPeerConnection = function(initiatorPeer, receiverPeer) {
+      sails.log.info('step3 initiator', initiatorPeer, 'receiver', receiverPeer);
 
-      var resolver = Promise.defer();
+      var makePc = Promise.method(function(receiverPeer) {
+	return PeerConnection.create({ state: 'reserved', endpoint: receiverPeer.id, initiator: initiatorPeer.id })
+          .then(function(peerConn) {
+            if (!peerConn) {
+              return Promise.reject(res.serverError('Unable to create peer connection'));
+            }
 
-      // TODO bad hack
-      // use .spread()?
-      // problem is we need to get two values from the last resolve, but resolve can only pass a single one
-      //var initiatorPeer = peerPair[0];
-      //var receiverPeer = peerPair[1];
+            // subscribe peer connection to socket
+            PeerConnection.subscribe(req.socket, peerConn);
 
-      PeerConnection.create({ state: 'reserved', initiator: initiatorPeer.id, receiver: receiverPeer.id })
-	.exec(function(err, peerConn) {
-	  if (err) resolver.reject(err);
-
-	  if (!peerConn) {
-	    resolver.reject(new Error('Unable to create peer connection'));
-	  }
-
-	  // subscribe peer connection to socket
-	  PeerConnection.subscribe(req.socket, peerConn);
-
-	  sails.log.info('PeerConnection#create step3: Creating peer connection', peerConn.id, 'for initiator', peerConn.initiator, 'and receiver', peerConn.receiver);
-
-	  resolver.resolve([peerConn, initiatorPeer, receiverPeer]);
-	});
-
-      return resolver.promise;
-    };
-
-    var saveChildren = function(peerConn, initiatorPeer, receiverPeer) {
-      var resolver = Promise.defer();
-
-      var previousReceiver = receiverPeer.toObject();
-
-      receiverPeer.children.add(peerConn.id);
-      receiverPeer.save(function(err) {
-	if (err) resolver.reject(err);
-
-	sails.log.info('PeerConnection#create: Publishing add to receiver id', receiverPeer.id, 'about peer connection', peerConn.id);
-	Peer.publishAdd(receiverPeer.id, 'children', peerConn.id, req.socket, { previous : previousReceiver });
-	resolver.resolve([peerConn, initiatorPeer, receiverPeer]);
+	    return peerConn;
+	  });
       });
 
-      return resolver.promise;
-    };
+      var saveInitiator = function(peerConn, initiatorPeer) {
+        console.log('OUTBOUND', peerConn);
+        initiatorPeer.connections.add(peerConn.id);
 
-    var saveParent = function(peerConn, initiatorPeer, receiverPeer) {
-      var resolver = Promise.defer();
+        return initiatorPeer.save()
+          .then(function(upd) {
+            if (!upd) {
+              return Promise.reject(new Error('DB error, hit race condition updating peer', initiatorPeer.id, 'with outbound conn', peerConn.id));
+            }
 
-      var previousInitiator = initiatorPeer.toObject();
+            return upd;
+          });
+      };
 
-      /*
-      initiatorPeer.parent = peerConn.id;
-      initiatorPeer.save(function(err) {
-	if (err) resolver.reject(err);
+      var saveReceiver = function(peerConn, receiverPeer) {
+        console.log('INBOUND', peerConn.endpoint);
+	receiverPeer.connections.add(peerConn.id);
 
-        sails.log.info('PeerConnection#create: Publishing update about initiator id', initiatorPeer.id, 'with parent', initiatorPeer.parent.id, 'about peer connection', peerConn.id);
-	Peer.publishUpdate(initiatorPeer.id, { parent: peerConn.id }, req.socket, { previous: previousInitiator });
-	resolver.resolve([peerConn, initiatorPeer, receiverPeer]);
-      });
-      */
-      /*
-      Peer.update(initiatorPeer.id, { parent: peerConn.id })
-	.exec(function(err, updated) {
-	  if (err) resolver.reject(err);
+        return receiverPeer.save()
+          .then(function(upd) {
+            if (!upd) {
+              return Promise.reject(new Error('DB error, hit race condition updating peer', receiverPeer.id, 'with inbound conn', peerConn.id));
+            }
 
-	  updated = updated[0];
+            return upd;
+          });
+      };
 
-          sails.log.info('PeerConnection#create: Publishing update about initiator', updated.id, 'with parent conn', updated.parent, 'and parent peer', receiverPeer.id);
-          Peer.publishUpdate(updated.id, { parent: updated.parent }, req.socket, { previous: previousInitiator });
-          resolver.resolve([peerConn, initiatorPeer, receiverPeer]);
+      var peerConn;
+
+      return makePc(receiverPeer)
+	.then(function(pc) {
+	  peerConn = pc;
+	  return saveInitiator(peerConn, initiatorPeer);
+	})
+	.then(function(ip) {
+	  initiatorPeer = ip;
+	  return saveReceiver(peerConn, receiverPeer);
+	})
+	.then(function(rp) {
+	  receiverPeer = rp;
+	  return [peerConn, initiatorPeer, receiverPeer];
 	});
-      */
-
-      resolver.resolve([peerConn, initiatorPeer, receiverPeer]);
-
-      return resolver.promise;
     };
 
-    step1(socketId).then(step2).spread(step3).spread(saveChildren).spread(saveParent)
-      .spread(function(peerConn, initiator, receiver) {
-        return res.send(peerConn);
+    var init = getPeerBySocketId(socketId).then(getPeerMatch).spread(hookupPeerConnection);
+
+    init
+      .spread(function(peerConn, initiatorPeer, receiverPeer) {
+	sails.log.info(peerConn, initiatorPeer, receiverPeer);
+
+	// subscribe peer connection to socket
+        PeerConnection.subscribe(req.socket, peerConn);
+
+	//Peer.publishAdd(initiatorPeer.id, 'connections', peerConn.id, null, { noReverse: true });
+	//Peer.publishAdd(receiverPeer.id, 'connections', peerConn.id, null, { noReverse: true });
+
+	// TODO maybe leave in?
+	Peer.subscribe(req.socket, initiatorPeer);
+        //Peer.subscribe(req.socket, receiverPeer);
+
+	PeerConnection.publishCreate(peerConn);
+
+	return res.json({ status: 200, connection: peerConn });
       })
       .error(function(err) {
-        sails.log.error('PeerConnection#create: Socket', socketId, 'requested peer;', err.message);
-        return res.json({ status: 404, message: err.message });
+        sails.log.error('PeerConnectionController#create: DB error', e);
+        return res.serverError('DB error', e);
+      })
+      .catch(Error, function(e) {
+        sails.log.error('PeerConnectionController#create: Internal server error', e);
+        return res.serverError('Internal server error', e);
       })
       .catch(function(e) {
-        sails.log.error(e);
-        return res.serverError('Internal server error');
+        sails.log.error('PeerConnectionController#create: Other internal server error', e);
+        return res.serverError('Other internal server error', e);
       });
 
-    /*
-    step1(socketId).then(step2).spread(step3)
-      .spread(function(peerConn, initiator, receiver) {
-	// now let's subscribe the sockets to this peer connection
-	initiator.parent.add(receiver);
-	receiver.children.add(initiator);
-
-	sails.log.info('peerConn', peerConn, 'initiator', initiator, 'receiver', receiver);
-
-	return res.send(peerConn);
-      })
-      .error(function(err) {
-	sails.log.error('PeerConnection#create: Socket', socketId, 'requested peer;', err.message);
-	return res.json({ status: 404, message: err.message });
-      })
-      .catch(function(e) {
-	sails.log.error(e);
-	return res.serverError('Internal server error');
-      });
-    */
   },
 
   message: function(req, res) {
@@ -218,61 +187,46 @@ module.exports = {
     var payload = req.param('payload');
     var socketId = req.socket.id;
 
-    var step1 = function(peerConnectionId) {
-      sails.log.info('PeerConnection#message: step1', peerConnectionId);
-
-      var resolver = Promise.defer();
-
-      PeerConnection.findOneById(peerConnectionId)
-	.populate('initiator')
-	.populate('receiver')
-	.exec(function(err, peerConn) {
-	  if (err) resolver.reject(err);
-
+    var getPeerConnectionById = Promise.method(function(peerConnectionId) {
+      return PeerConnection.findOneById(peerConnectionId)
+	.populate('endpoint')
+	.then(function(peerConn) {
 	  if (!peerConn) {
-	    resolver.reject(new Error('Can not message a nonexistent peer connection'));
+	    return Promise.reject(res.serverError('Can not message a nonexistent peer connection'));
 	  }
 
-	  resolver.resolve(peerConn);
+	  return peerConn;
 	});
-
-      return resolver.promise;
-    };
+    });
 
     // update reserved state to connecting state as required
     var updateState = function(peerConn) {
-      sails.log.info('PeerConnection#message: step2', peerConn);
-
-      var resolver = Promise.defer();
-
       if (peerConn.state === 'reserved') {
 	var previousPeerConn = peerConn.toObject();
 
-	PeerConnection.update({ id: peerConn.id }, { state: 'connecting' })
-          .exec(function(err, updated) {
-            if (err) resolver.reject(err);
-
-	    updated = updated[0];
-
-            if (!updated) {
-              resolver.reject(new Error('Could not change nonexistent peer connection state'));
+	return PeerConnection.update({ id: peerConn.id },
+				     { state: 'connecting' })
+          .then(function(updated) {
+            if (!updated || updated.length === 0) {
+              return Promise.reject(res.serverError('Could not change nonexistent peer connection state'));
             }
+
+            updated = updated[0];
 
 	    // publish update if needed
 	    sails.log.info('PeerConnection#message: updateState for peer connection id', updated.id, 'new state', updated.state, 'previous', peerConn);
 	    PeerConnection.publishUpdate(updated.id, { state: updated.state }, null, { previous: peerConn });
 
-            resolver.resolve(peerConn);
+            return peerConn;
           });
-      } else {
-	// some other state
-	resolver.resolve(peerConn);
       }
 
-      return resolver.promise;
+      // some other state
+      return peerConn;
     };
 
-    step1(peerConnectionId).then(updateState)
+    getPeerConnectionById(peerConnectionId)
+      .then(updateState)
       .then(function(peerConn) {
 	// we'll subscribe them to the peer connection
 	// this is *especially* needed after a peer connection is first initiated
@@ -290,13 +244,17 @@ module.exports = {
 	return res.json({ status: 200 });
       })
       .error(function(err) {
-        sails.log.error('PeerConnection#message: Socket', socketId, 'tried to message with peer connection;', err.message);
-        return res.json({ status: 404, message: err.message });
+        sails.log.error('PeerConnectionController#message: DB error', e);
+        return res.serverError('DB error');
+      })
+      .catch(Error, function(e) {
+        sails.log.error('PeerConnectionController#message: Internal server error', e);
+        return res.serverError('Internal server error');
       })
       .catch(function(e) {
-        sails.log.error(e);
-        return res.serverError('Internal server error');
+        return res.serverError('Other internal server error');
       });
+
   },
 
   destroy: function(req, res) {
@@ -304,48 +262,32 @@ module.exports = {
       return res.badRequest('Peer management only supported with sockets');
     }
 
-    var peerConnectionId = req.param('id');
     var socketId = req.socket.id;
+    var peerConnectionId = req.param('id');
 
-    var step1 = function(peerConnectionId) {
-      sails.log.info('PeerConnection#destroy: step1', peerConnectionId);
-
-      var resolver = Promise.defer();
-
-      PeerConnection.findOneById(peerConnectionId)
-        .populate('initiator')
-        .populate('receiver')
-        .exec(function(err, peerConn) {
-          if (err) resolver.reject(err);
-
+    var getPeerConnectionById = Promise.method(function(peerConnectionId) {
+      return PeerConnection.findOneById(peerConnectionId)
+        .populate('endpoint')
+        .then(function(peerConn) {
           if (!peerConn) {
-            resolver.reject(new Error('Can not destroy  nonexistent peer connection'));
+            return Promise.reject(res.serverError('Can not destroy nonexistent peer connection'));
           }
 
-          resolver.resolve(peerConn);
+          return peerConn;
         });
+    });
 
-      return resolver.promise;
+    var destroyPeerConnection = function(peerConn) {
+      return PeerConnection.destroy({ id: peerConn.id })
+        .then(function() {
+	  return peerConn;
+        });
     };
 
-    var step2 = function(peerConn) {
-      sails.log.info('PeerConnection#destroy: step2', peerConn);
-
-      var resolver = Promise.defer();
-
-      PeerConnection.destroy({ id: peerConn.id })
-        .exec(function(err) {
-          if (err) resolver.reject(err);
-
-          resolver.resolve(peerConn);
-        });
-
-      return resolver.promise;
-    };
-
-    step1(peerConnectionId).then(step2)
+    getPeerConnectionById(peerConnectionId)
+      .then(destroyPeerConnection)
       .then(function(peerConn) {
-	sails.log.info('PeerConnection#message: Destroying peer connection', peerConn.id, 'by request of socket', socketId);
+	sails.log.info('PeerConnection#destroy: Destroying peer connection', peerConn.id, 'by request of socket', socketId);
 
 	// publish the destroy
 	PeerConnection.publishDestroy(peerConn.id, null, { previous: peerConn });
@@ -353,12 +295,15 @@ module.exports = {
 	return res.json({ status: 200 });
       })
       .error(function(err) {
-        sails.log.error('PeerConnection#destroy: Socket', socketId, 'tried to destroy a peer connection;', err.message);
-        return res.json({ status: 404, message: err.message });
+        sails.log.error('PeerConnectionController#destroy: DB error', e);
+        return res.serverError('DB error');
+      })
+      .catch(Error, function(e) {
+        sails.log.error('PeerConnectionController#destroy: Internal server error', e);
+        return res.serverError('Internal server error');
       })
       .catch(function(e) {
-        sails.log.error(e);
-        return res.serverError('Internal server error');
+        return res.serverError('Other internal server error');
       });
 
   },
@@ -371,39 +316,28 @@ module.exports = {
     var peerConnectionId = req.param('id');
     var socketId = req.socket.id;
 
-    var step1 = function(peerConnectionId) {
-      sails.log.info('PeerConnection#finalize: step1', peerConnectionId);
-
-      var resolver = Promise.defer();
-
-      PeerConnection.findOneById(peerConnectionId)
-        .populate('initiator')
-        .populate('receiver')
-        .exec(function(err, peerConn) {
-          if (err) resolver.reject(err);
-
+    var getPeerConnectionById = Promise.method(function(peerConnectionId) {
+      return PeerConnection.findOneById(peerConnectionId)
+        .populate('endpoint')
+        .then(function(peerConn) {
           if (!peerConn) {
-            resolver.reject(new Error('Can not finalize a nonexistent peer connection'));
+            return Promise.reject(res.serverError('Can not finalize a nonexistent peer connection'));
           }
 
-          resolver.resolve(peerConn);
+          return peerConn;
         });
-
-      return resolver.promise;
-    };
+    });
 
     // update reserved state to connecting state as required
     var updateState = function(peerConn) {
-      sails.log.info('PeerConnection#finalize: step2', peerConn);
-
-      var resolver = Promise.defer();
+      sails.log.info('PeerConnection#finalize: step 2', peerConn);
 
       if (peerConn.state !== 'established') {
 	var newState = 'established';
 
-	if (peerConn.receiver.socketID === socketId) {
+	if (peerConn.receiver.socketId === socketId) {
 	  if (peerConn.state !== 'init_established') newState = 'recv_' + newState;
-	} else if (peerConn.initiator.socketID === socketId) {
+	} else if (peerConn.initiator.socketId === socketId) {
 	  if (peerConn.state !== 'recv_established') newState = 'init_' + newState;
 	} else {
 	  // WTF?
@@ -412,12 +346,10 @@ module.exports = {
 
 	sails.log.info('PeerConnection#finalize: step2 updating peer connection', peerConn.id, 'with new state', newState, 'from old state', peerConn.state);
 
-        PeerConnection.update({ id: peerConn.id }, { state: newState })
-          .exec(function(err, updated) {
-            if (err) resolver.reject(err);
-
+        return PeerConnection.update({ id: peerConn.id }, { state: newState })
+          .then(function(updated) {
             if (!updated || updated.length === 0) {
-              resolver.reject(new Error('Could not change nonexistent peer connection state'));
+              return Promise.reject(res.serverError('Could not change nonexistent peer connection state'));
             }
 
 	    updated = updated[0];
@@ -426,29 +358,31 @@ module.exports = {
             sails.log.info('PeerConnection#finalize: updateState for peer connection id', updated.id, 'new state', updated.state, 'previous', peerConn);
             PeerConnection.publishUpdate(updated.id, { state: updated.state }, null, { previous: peerConn });
 
-            resolver.resolve(peerConn);
+            return peerConn;
           });
       } else {
 	// already in established state
-        resolver.resolve(peerConn);
+        return peerConn;
       }
-
-      return resolver.promise;
     };
 
-    step1(peerConnectionId).then(updateState)
+    getPeerConnectionById(peerConnectionId)
+      .then(updateState)
       .then(function(peerConn) {
         sails.log.info('PeerConnection#message: Finalizing peer connection', peerConn.id, 'into state', peerConn.state, 'by request of socket', socketId);
 
         return res.json({ status: 200 });
       })
       .error(function(err) {
-        sails.log.error('PeerConnection#destroy: Socket', socketId, 'tried to finalize a peer connection;', err.message);
-        return res.json({ status: 404, message: err.message });
+        sails.log.error('PeerConnectionController#finalize: DB error', e);
+        return res.serverError('DB error');
+      })
+      .catch(Error, function(e) {
+        sails.log.error('PeerConnectionController#finalize: Internal server error', e);
+        return res.serverError('Internal server error');
       })
       .catch(function(e) {
-        sails.log.error(e);
-        return res.serverError('Internal server error');
+        return res.serverError('Other internal server error');
       });
 
   }

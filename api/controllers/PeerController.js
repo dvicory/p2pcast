@@ -8,7 +8,7 @@
 var Promise = require('bluebird');
 
 var PeerController = {
-  create: function(req, res, next) {
+  create: function(req, res) {
     if (!req.isSocket) {
       return res.badRequest('Peer management only supported with sockets');
     }
@@ -19,97 +19,72 @@ var PeerController = {
     var isBroadcaster = req.param('broadcaster') || false;
 
     // check the channel exists
-    var step1 = function(channelId) {
-      var resolver = Promise.defer();
-
-      sails.log('channelId', channelId);
-
-      Channel.findOneById(channelId)
+    var checkChannel = Promise.method(function(channelId) {
+      return Channel.findOneById(channelId)
 	.populate('owner')
-	.exec(function(err, channel) {
-	  sails.log.info('Peer#create: then 1', channel);
-
-	  if (err) resolver.reject(err);
-
-	  // if it doesn't exist, don't try to be a peer for it
+	.then(function(channel) {
 	  if (!channel) {
-	    /*
-	    sails.log.warn('Socket', socketId, 'requested to be a peer for nonexistent channel', channelId);
-	    return res.notFound('Can not be a peer for a nonexistent channel');
-	    */
-	    resolver.reject(new Error('Can not be a peer for a nonexistent channel'));
+	    return Promise.reject(res.notFound('Can not be a peer for a nonexistent channel'));
 	  }
 
-	  // if we're the owner we can broadcast
-	  if (req.session.user && channel.owner.id === req.session.user.id) {
+	  if (req.session.user && req.session.user.id === channel.owner.id) {
 	    canBroadcast = true;
 	  }
 
-	  resolver.resolve(socketId);
-	});
-
-      return resolver.promise;
-    };
-
-    // find, or create the peer if necessary
-    var step2 = function(socketId) {
-      var resolver = Promise.defer();
-
-      sails.log.info('socketId', socketId, 'channel', channelId, 'isBroadcaster', isBroadcaster, 'canBroadcast', canBroadcast);
-
-      Peer.findOrCreate({ socketID: socketId },
-			{ socketID: socketId, channel: channelId, broadcaster: isBroadcaster && canBroadcast })
-	.exec(function(err, peer) {
-	  sails.log.info('Peer#create: then 2', peer);
-
-	  if (err) resolver.reject(err);
-
-	  if (!peer) {
-	    // WTF?
-	    /*
-	    sails.log.error('Tried to find or create peer on socket', socketId, 'for channel', channelId, 'which could not find or create!');
-	    return res.serverError('DB error');
-	    */
-	    sails.log.error('Peer#create: findOrCreate');
-	    resolver.reject(new Error('DB error'));
+	  if (!canBroadcast && isBroadcaster) {
+	    return Promise.reject(res.forbidden('You are not an allowed broadcaster'));
 	  }
 
-	  // get rid of parent
-	  peer.parent = null;
-
-	  // set channel
-	  peer.channel = channelId;
-
-	  // set broadcaster
-	  peer.broadcaster = isBroadcaster && canBroadcast;
-	  peer.save();
-
-	  // subscribe this socket to updates on his peer model instance
-	  Peer.subscribe(req.socket, peer);
-
-	  resolver.resolve(peer);
+	  return [channel, socketId];
 	});
+    });
 
-      return resolver.promise;
-    };
+    // create the peer given the channel and socket id
+    var createPeer = Promise.method(function(channel, socketId) {
+      return Peer.findOrCreate({ socketId: socketId, channel: channelId },
+			       { socketId: socketId, channel: channelId, broadcaster: isBroadcaster })
+	.then(function(peer) {
+	  if (!peer) {
+	    return Promise.reject(new Error('findOrCreate could neither find or create, simultaneously'));
+	  }
 
-    sails.log.info('beforeSteps');
+	  return peer;
+	})
+	.then(function(peer) {
+	  // update broadcaster
+	  return Peer.update({ id: peer.id }, { broadcaster: isBroadcaster })
+	    .then(function(upd) {
+	      if (upd.length !== 1) {
+		return Promise.reject(new Error('DB error, hit race condition updating peer',
+						peer.id, 'with broadcaster as', isBroadcaster));
+	      }
 
-    step1(channelId).then(step2)
+	      return upd[0];
+	    });
+	});
+    });
+
+    checkChannel(channelId).spread(createPeer)
       .then(function(peer) {
+	// subscribe them
+	Peer.subscribe(req.socket, peer);
+
 	return res.json(peer);
       })
       .error(function(err) {
-	sails.log.error('Peer#create: Socket', socketId, 'requested peer creation;', err.message);
-        return res.json({ status: 404, message: err.message });
+        sails.log.error('PeerController#create: DB error', e);
+        return res.serverError('DB error');
+      })
+      .catch(Error, function(e) {
+        sails.log.error('PeerController#create: Internal server error', e);
+        return res.serverError('Internal server error');
       })
       .catch(function(e) {
-	sails.log.error(e);
-        return res.serverError('Internal server error');
+	return res.serverError('Other internal server error');
       });
   },
 
-  destroy: function(req, res, next) {
+  destroy: function(req, res) {
     if (!req.isSocket) {
       return res.badRequest('Peer management only supported with sockets');
     }
@@ -117,25 +92,55 @@ var PeerController = {
     var socketId = req.socket.id;
     var peerId = req.param('id');
 
-    Peer.findOneById(peerId)
+    var findPeer = Promise.method(function(peerId) {
+      return Peer.findOneById(peerId)
+	.then(function(peer) {
+	  if (!peer) {
+            sails.log.warn('Socket', socketId, 'requested to destroy nonexistent peer', peerId);
+            return Promise.reject(res.notFound('Can not destroy peer that does not exist'));
+	  }
+
+	  if (peer.socketId != socketId) {
+            sails.log.warn('Socket', socketId, 'requested to destroy peer', peerId, 'that is not owned by him');
+            return Promise.reject(res.forbidden('Can not destroy peers not your own'));
+	  }
+
+	  return peer;
+	});
+    });
+
+    var destroyPeer = Promise.method(function(peer) {
+      return Peer.destroy({ id: peer.id })
+	.then(function() {
+	  return peer;
+	});
+    });
+
+    findPeer(peerId)
       .then(function(peer) {
-	if (!peer) {
-          sails.log.warn('Peer', socketId, 'requested to destroy nonexistent peer', peerId);
-          return res.notFound('Can not destroy peer that does not exist');
-	}
-
-	Peer.destroy({ id: peer.id }).exec(function(){});
-
-	Peer.publishDestroy(peer.id, null, { previous: peer });
-
-	return res.json(peer);
+	// destroy it
+	return Peer.destroy({ id: peer.id })
+          .then(function() {
+            return peer;
+          });
       })
-      .fail(function(err) {
-	if (err) {
-	  sails.log.error('Tried to destroy peer', peerID, 'for socket', socketID, 'errored with', err);
-	  return res.serverError('DB error');
-	}
+      .then(function(peer) {
+	// publicate his death
+	Peer.publishDestroy(peer.id, null, { previous: peer });
+	return peer;
+      })
+      .error(function(err) {
+        sails.log.error('PeerController#destroy: DB error', e);
+        return res.serverError('DB error');
+      })
+      .catch(Error, function(e) {
+        sails.log.error('PeerController#destroy: Internal server error', e);
+        return res.serverError('Internal server error');
+      })
+      .catch(function(e) {
+        return res.serverError('Other internal server error');
       });
+
   }
 };
 

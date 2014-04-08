@@ -16,10 +16,10 @@ module.exports.sockets = {
   // mixes in socket.io events for your routes and blueprints automatically.
   onConnect: function(session, socket) {
     // let's store the socket id in the sessions
-    var socketID = sails.sockets.id(socket);
+    var socketId = sails.sockets.id(socket);
 
     session.sockets = session.sockets || {};
-    session.sockets[socketID] = socketID;
+    session.sockets[socketId] = socketId;
 
     // and persist
     session.save();
@@ -29,53 +29,71 @@ module.exports.sockets = {
   onDisconnect: function(session, socket) {
     // we shall attempt to remove them as any peers
     // this will cause a cascade of publishing
-    var socketID = sails.sockets.id(socket);
+    var socketId = sails.sockets.id(socket);
 
-    delete session.sockets[socketID];
+    delete session.sockets[socketId];
     session.save();
 
-    Peer.findBySocketID(socketID).populate('parent').populate('children').exec(function(err, peers) {
-      if (err) {
-	sails.log.error('#onDisconnect findBySocketID', err);
-	return;
-      }
+    Peer.findBySocketId(socketId)
+      .populate('connections')
+      .exec(function(err, peers) {
+	if (err) {
+	  sails.log.error('#onDisconnect findBySocketId', err);
+	  return;
+	}
 
-      _.each(peers, function(peer) {
-	var previousPeer = peer.toObject();
+	_.each(peers, function(peer) {
+	  var previousPeer = peer.toObject();
 
-	peer.destroy(function(err) {
-	  if (err) {
-	    sails.log.error('#onDisconnect: Can not destroy peer', peer.id, 'with error', err);
-	    return true;
-	  }
-
-	  sails.log.info('#onDisconnect: Destroyed peer', peer.id);
 	  /*
-	  peer.parent.destroy(function(err) {
+	  _.each(peer.outbound, function(outbound) {
+	    peer.outbound.remove(outbound.id);
+	  });
+
+
+	  Peer.publishUpdate()
+	  */
+
+	  Peer.destroy({ id: peer.id })
+	    .then(function() {
+	      Peer.publishDestroy(peer.id, null, { previous: previousPeer });
+	    });
+
+	  return true;
+
+	  peer.destroy(function(err) {
 	    if (err) {
-              sails.log.error("#onDisconnect: Can not destroy peer's parent", peer.id, 'with error', err);
-              return true;
+	      sails.log.error('#onDisconnect: Can not destroy peer', peer.id, 'with error', err);
+	      return true;
 	    }
 
-	    sails.log.verbose("#onDisconnect: Destroyed peer's parent", peer.parent.id);
+	    sails.log.info('#onDisconnect: Destroyed peer', peer.id);
+	    /*
+	     peer.parent.destroy(function(err) {
+	     if (err) {
+             sails.log.error("#onDisconnect: Can not destroy peer's parent", peer.id, 'with error', err);
+             return true;
+	     }
+
+	     sails.log.verbose("#onDisconnect: Destroyed peer's parent", peer.parent.id);
+	     });
+
+	     _.each(peer.children, function(child) {
+	     child.destroy(function(err) {
+             if (err) {
+	     sails.log.error("#onDisconnect: Can not destroy peer's child", peer.id, 'with error', err);
+	     return true;
+             }
+
+             sails.log.verbose("#onDisconnect: Destroyed peer's child", child.id);
+	     });
+	     });
+	     */
 	  });
 
-	  _.each(peer.children, function(child) {
-	    child.destroy(function(err) {
-              if (err) {
-		sails.log.error("#onDisconnect: Can not destroy peer's child", peer.id, 'with error', err);
-		return true;
-              }
-
-              sails.log.verbose("#onDisconnect: Destroyed peer's child", child.id);
-	    });
-	  });
-	  */
+	  //Peer.publishDestroy(peer.id, socket, { previous: previousPeer });
 	});
-
-	Peer.publishDestroy(peer.id, socket, { previous: previousPeer });
       });
-    });
   },
 
   // `transports`
@@ -84,10 +102,10 @@ module.exports.sockets = {
   // The flashsocket transport is disabled by default
   // You can enable flashsockets by adding 'flashsocket' to this list:
   transports: [
-  'websocket',
-  'htmlfile',
-  'xhr-polling',
-  'jsonp-polling'
+    'websocket',
+    'htmlfile',
+    'xhr-polling',
+    'jsonp-polling'
   ],
 
 
@@ -154,17 +172,17 @@ module.exports.sockets = {
   // use cases, Sails allows you to override the authorization behavior
   // with your own custom logic by specifying a function, e.g:
   /*
-    authorization: function authorizeAttemptedSocketConnection(reqObj, cb) {
+   authorization: function authorizeAttemptedSocketConnection(reqObj, cb) {
 
-        // Any data saved in `handshake` is available in subsequent requests
-        // from this as `req.socket.handshake.*`
+   // Any data saved in `handshake` is available in subsequent requests
+   // from this as `req.socket.handshake.*`
 
-        //
-        // to allow the connection, call `cb(null, true)`
-        // to prevent the connection, call `cb(null, false)`
-        // to report an error, call `cb(err)`
-    }
-  */
+   //
+   // to allow the connection, call `cb(null, true)`
+   // to prevent the connection, call `cb(null, false)`
+   // to report an error, call `cb(err)`
+   }
+   */
   authorization: true,
 
   // Match string representing the origins that are allowed to connect to the Socket.IO server

@@ -10,7 +10,28 @@
 
  var UserController = {
   index: function(req, res) {
-    res.send({ session: req.session });
+    if(req.session.user) {
+
+      Channel.find({ owner: req.session.user.id }).then(function(channels) {
+        if(!channels){
+          sails.log.error('User#index: No channels found.');
+          return res.serverError('No channels found');
+        }
+
+        if (req.wantsJSON || req.isSocket) {
+          return res.json({
+            channels: channels
+          });
+        } else {
+          return res.view({
+            channels: channels,
+            title: "Profile Page"
+          });
+        }
+      });
+    } else {
+      return res.redirect('/');
+    }
   },
 
   create: function(req, res) {
@@ -33,6 +54,33 @@
     }).error(function(e) {
       sails.log.error('Auth#login: DB error', e);
       return res.json({ error: 'DB error' }, 500);      
+    });
+  },
+
+  update: function(req, res) {
+
+    var name  = req.param('name');
+    var email = req.param('email');
+    var password = req.param('password');
+
+    var updatedUser;
+    User.update({id: req.session.user.id }, {name: name, email: email, password: password},
+      function(err, user) {
+
+        // Error handling
+        if (err) {
+          req.flash('msg','updated failed')
+          console.log(err);
+          return res.redirect('/user');
+        // Updated users successfully!
+        } else {
+          console.log("Users updated:", user);
+          req.session.user.name = name;
+          req.session.user.email = email;
+          req.session.save();
+          req.flash('msg','updated successfully');
+          return res.redirect('/user');
+        }
     });
   }
 

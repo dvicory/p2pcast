@@ -1,51 +1,53 @@
 <div class="row">
 
-	<div class="col-md-6">
-		<h2><%= req.session.user.name %></h2>
-		<p class="lead">Update Info: </p>
-		<form role="form" action="/user/update/<%= req.session.user.id %>" method="post">
-			<fieldset class='textbox' style="padding-top:10px; padding-bottom:10px;">
-				<div class="col-sm-6 form-group">
-					<label for="userInputName">Name: </label>
-					<input type="name" class="form-control" name="name" id="userInputName" placeholder="Enter name" required>
+  <div class="col-md-6">
+    <h2><%= req.session.user.name %></h2>
+    <p class="lead">Update Info: </p>
+    <form role="form" action="/user/update/<%= req.session.user.id %>" method="post">
+      <fieldset class='textbox' style="padding-top:10px; padding-bottom:10px;">
+        <div class="col-sm-6 form-group">
+          <label for="userInputName">Name: </label>
+          <input type="name" class="form-control" name="name" id="userInputName" placeholder="Enter name" required>
 
-					<label for="userInputEmail">Email address: </label>
-					<input type="email" class="form-control" name="email" id="userInputEmail" placeholder="Enter email" required>
+          <label for="userInputEmail">Email address: </label>
+          <input type="email" class="form-control" name="email" id="userInputEmail" placeholder="Enter email" required>
 
-					<label for="userInputPassword">New Password: </label>
-					<input type="password" class="form-control" name="password" id="userInputPassword" placeholder="Enter Password" required>
+          <label for="userInputPassword">New Password: </label>
+          <input type="password" class="form-control" name="password" id="userInputPassword" placeholder="Enter Password" required>
 
-					<label for="userInputPassword" id="userProfilePassword">Confirm Password: </label>
-					<input type="password" class="form-control"  placeholder="Confirm Password" required><br>
-					<button type="submit" class="btn btn-danger" id="userProfileUpdate">Save</button>
-				</div>
-			</fieldset>
-		</form>
-		<p class="lead" style="color: green;"><%- req.flash('msg') %></p>
-	</div>
+          <label for="userInputPassword" id="userProfilePassword">Confirm Password: </label>
+          <input type="password" class="form-control"  placeholder="Confirm Password" required><br>
+          <button type="submit" class="btn btn-danger" id="userProfileUpdate">Save</button>
+        </div>
+      </fieldset>
+    </form>
+    <p class="lead" style="color: red;" id="flash"><%- req.flash('msg') %></p>
+    <script>
+      if($('#flash').text() == "updated successfully") {
+        $('#flash').attr('style','color: green;');
+      }
+    </script>
+  </div>
 
-	<div class="col-md-6">
-		<h3>Your Channels: </h3>
-		<table class="table table-hover">
-			<thead>
-				<tr>
-					<td><Strong>Channel Name</Strong></td>
-				</tr>
-			</thead>
-			<% if(channels.length > 0) { %>
-				<tr>
-					<% _.each(channels, function (channel) { %>
-					<% if (!channel.owner) return true; %>
-						<td><a href="/channel/<%= channel.id %>"><%= channel.name %></a></td>
-				</tr>
-					<% }) %>
-			<% } else { %>
-				<tr><td><p class="lead"><small>No Channels</small></p></td></tr>
-			<% } %>
-		</table>
+  <div class="col-md-6">
+    <h3>Your Channels: </h3>
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <td><Strong>Channel Name</Strong></td>
+        </tr>
+      </thead>
+      <% if(channels.length > 0) { %>
+      <tr>
+        <% _.each(channels, function (channel) { %>
+        <% if (!channel.owner) return true; %>
+          <td><a href="/channel/<%= channel.id %>"><%= channel.name %></a></td>
+      </tr>
+      <% }) %>
+      <% } else { %>
+        <tr><td><p class="lead"><small>No Channels</small></p></td></tr>
+      <% } %>
+    </table>
 
-
-
-	</div>
-
+  </div>
 </div>

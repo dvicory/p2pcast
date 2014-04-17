@@ -3,7 +3,9 @@
  *
  * ---------------------------------------------------------------
  *
- * Watch for changes on files in the `assets` folder,
+ * Watch for changes on
+ * - files in the `assets` folder
+ * - the `tasks/pipeline.js` file
  * and re-run the appropriate tasks.
  *
  * For usage docs see:
@@ -21,10 +23,10 @@ module.exports = function(grunt) {
 		assets: {
 
 			// Assets to watch:
-			files: ['assets/**/*'],
+			files: ['assets/**/*', 'tasks/pipeline.js'],
 
 			// When assets are changed:
-			tasks: ['syncAssets' , 'linkAssets']
+			tasks: ['compileAssets', 'syncAssets', 'linkAssets']
 		}
 	});
 

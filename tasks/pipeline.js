@@ -15,7 +15,7 @@
 // (if you're using LESS with the built-in default config, you'll want
 //  to change `assets/styles/importer.less` instead.)
 var cssFilesToInject = [
-  'styles/**/*.css'
+	'styles/**/*.css'
 ];
 
 
@@ -23,25 +23,13 @@ var cssFilesToInject = [
 // (uses Grunt-style wildcard/glob/splat expressions)
 var jsFilesToInject = [
 
-  // Below, as a demonstration, you'll see the built-in dependencies
-  // linked in the proper order order
+	// Dependencies like sails.io.js, jQuery, or Angular
+	// are brought in here
+	'js/dependencies/**/*.js',
 
-  // Bring in the socket.io client
-  'js/socket.io.js',
-
-  // then beef it up with some convenience logic for talking to Sails.js
-  'js/sails.io.js',
-
-  // finally, include a simple boilerplate script that connects a socket
-  // to the Sails backend with some example code
-  'js/connection.example.js',
-
-  //
-  // *->    you might put other dependencies like jQuery or Angular here   <-*
-  //
-
-  // All of the rest of your app scripts
-  'js/**/*.js'
+	// All of the rest of your client-side js files
+	// will be injected here in no particular order.
+	'js/**/*.js'
 ];
 
 
@@ -55,7 +43,7 @@ var jsFilesToInject = [
 // templates get spit out to the same file.  Be sure and check out `tasks/README.md`
 // for information on customizing and installing new tasks.
 var templateFilesToInject = [
-  'templates/**/*.html'
+	'templates/**/*.html'
 ];
 
 
@@ -69,11 +57,11 @@ var templateFilesToInject = [
 // (i.e. where the other Grunt tasks spit them out, or in some cases, where
 // they reside in the first place)
 module.exports.cssFilesToInject = cssFilesToInject.map(function(path) {
-  return '.tmp/public/' + path;
+	return '.tmp/public/' + path;
 });
 module.exports.jsFilesToInject = jsFilesToInject.map(function(path) {
-  return '.tmp/public/' + path;
+	return '.tmp/public/' + path;
 });
 module.exports.templateFilesToInject = templateFilesToInject.map(function(path) {
-  return 'assets/' + path;
+	return 'assets/' + path;
 });

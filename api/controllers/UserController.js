@@ -53,7 +53,7 @@
       return res.redirect('back');
     }).error(function(e) {
       sails.log.error('Auth#login: DB error', e);
-      return res.json({ error: 'DB error' }, 500);      
+      return res.json({ error: 'DB error' }, 500);
     });
   },
 
@@ -66,13 +66,10 @@
     var updatedUser;
     User.update({id: req.session.user.id }, {name: name, email: email, password: password},
       function(err, user) {
-
-        // Error handling
         if (err) {
-          req.flash('msg','updated failed')
+          req.flash('msg','update failed');
           console.log(err);
           return res.redirect('/user');
-        // Updated users successfully!
         } else {
           console.log("Users updated:", user);
           req.session.user.name = name;

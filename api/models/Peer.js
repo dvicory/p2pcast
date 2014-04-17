@@ -45,7 +45,7 @@ var Peer = {
       if (this.broadcaster) return true;
 
       // we only want established connections
-      var upstreamConnections = _.filter(this.outbound, { state: 'established' });
+      var upstreamConnections = _.filter(this.connections, { state: 'established' });
 
       // TODO make this function do double duty, say return connections that can be used
       return upstreamConnections.length > 0;

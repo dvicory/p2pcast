@@ -150,7 +150,8 @@ module.exports = {
 	sails.log.info(peerConn, initiatorPeer, receiverPeer);
 
 	// subscribe peer connection to socket
-        PeerConnection.subscribe(req.socket, peerConn);
+        //PeerConnection.subscribe(req.socket, peerConn);
+	PeerConnection.subscribe([req.socket, receiverPeer.socketId], peerConn);
 
 	//Peer.publishAdd(initiatorPeer.id, 'connections', peerConn.id, null, { noReverse: true });
 	//Peer.publishAdd(receiverPeer.id, 'connections', peerConn.id, null, { noReverse: true });
@@ -159,7 +160,7 @@ module.exports = {
 	Peer.subscribe(req.socket, initiatorPeer);
         //Peer.subscribe(req.socket, receiverPeer);
 
-	PeerConnection.publishCreate(peerConn);
+	PeerConnection.publishCreate(peerConn, req.socket);
 
 	return res.json({ status: 200, connection: peerConn });
       })
@@ -184,7 +185,7 @@ module.exports = {
     }
 
     var peerConnectionId = req.param('id');
-    var payload = req.param('payload');
+    var data = req.param('data');
     var socketId = req.socket.id;
 
     var getPeerConnectionById = Promise.method(function(peerConnectionId) {
@@ -238,7 +239,7 @@ module.exports = {
 	PeerConnection.subscribe(req.socket, peerConn);
 
 	// now we'll forward the message on, exclude the sender
-	PeerConnection.message(peerConn, payload, req.socket);
+	PeerConnection.message(peerConn, data, req.socket);
 
 	// let our guy know all is well
 	return res.json({ status: 200 });
@@ -318,6 +319,7 @@ module.exports = {
 
     var getPeerConnectionById = Promise.method(function(peerConnectionId) {
       return PeerConnection.findOneById(peerConnectionId)
+	.populate('initiator')
         .populate('endpoint')
         .then(function(peerConn) {
           if (!peerConn) {
@@ -329,19 +331,19 @@ module.exports = {
     });
 
     // update reserved state to connecting state as required
-    var updateState = function(peerConn) {
+    var updateState = Promise.method(function(peerConn) {
       sails.log.info('PeerConnection#finalize: step 2', peerConn);
 
       if (peerConn.state !== 'established') {
 	var newState = 'established';
 
-	if (peerConn.receiver.socketId === socketId) {
+	if (peerConn.endpoint.socketId === socketId) {
 	  if (peerConn.state !== 'init_established') newState = 'recv_' + newState;
 	} else if (peerConn.initiator.socketId === socketId) {
 	  if (peerConn.state !== 'recv_established') newState = 'init_' + newState;
 	} else {
 	  // WTF?
-	  resolver.reject(new Error('Neither the receiver or initiator peer were responsible for finalizing the peer connection'));
+	  throw new Error('Neither the receiver or initiator peer were responsible for finalizing the peer connection');
 	}
 
 	sails.log.info('PeerConnection#finalize: step2 updating peer connection', peerConn.id, 'with new state', newState, 'from old state', peerConn.state);
@@ -349,7 +351,7 @@ module.exports = {
         return PeerConnection.update({ id: peerConn.id }, { state: newState })
           .then(function(updated) {
             if (!updated || updated.length === 0) {
-              return Promise.reject(res.serverError('Could not change nonexistent peer connection state'));
+              return res.serverError('Could not change nonexistent peer connection state');
             }
 
 	    updated = updated[0];
@@ -364,14 +366,14 @@ module.exports = {
 	// already in established state
         return peerConn;
       }
-    };
+    });
 
     getPeerConnectionById(peerConnectionId)
       .then(updateState)
       .then(function(peerConn) {
         sails.log.info('PeerConnection#message: Finalizing peer connection', peerConn.id, 'into state', peerConn.state, 'by request of socket', socketId);
 
-        return res.json({ status: 200 });
+        return res.json({ status: 200, state: peerConn.state });
       })
       .error(function(err) {
         sails.log.error('PeerConnectionController#finalize: DB error', e);

@@ -22,11 +22,6 @@
       </fieldset>
     </form>
     <p class="lead" style="color: red;" id="flash"><%- req.flash('msg') %></p>
-    <script>
-      if($('#flash').text() == "updated successfully") {
-        $('#flash').attr('style','color: green;');
-      }
-    </script>
   </div>
 
   <div class="col-md-6">

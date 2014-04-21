@@ -18,7 +18,7 @@
     User.findOneByEmailAsync(email).then(function(user) {
       if (!user) {
         sails.log.info('Auth#login: Received invalid login, no user', email);
-        req.flash('msg','Invalid email');
+        req.flash('msg','Invalid email or password');
         res.redirect('back');
       } else {
         bcrypt.compareAsync(challenge, user.password).then(function(match) {
@@ -36,7 +36,7 @@
             }
 
             sails.log.info('Auth#login: Received invalid password attempt', email);
-            req.flash('msg','Invalid password');
+            req.flash('msg','Invalid email or password');
             res.redirect('back');
           }
         }).error(function(e) {

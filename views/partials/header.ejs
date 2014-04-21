@@ -84,6 +84,7 @@
               <input id="user_remember_me" style="float: left; margin-right: 10px;" type="checkbox" name="user[remember_me]" value="1" />
               <label class="string optional" for="user_remember_me"> Remember me</label>
               <li class="divider"></li>
+              <p class="lead" id="flash" style="color: red;"><small><%= req.flash('msg') %></small></p>
               <input class="btn btn-primary" style="clear: left; width: 100%; height: 32px; font-size: 13px;" value="Sign In" id="login" type="submit" />
             </fieldset>
           </form>
@@ -100,17 +101,6 @@
       </li>
       <li class="divider-vertical"></li>
       <li class="divider-vertical"></li>
-    <!-- Handle logout redirect -->
-    <script>
-    $('#logout').click(function() { 
-     $.post(
-      '/logout',
-      function(){
-        location.reload(true);
-      }
-      );
-   });
-    </script>
 
     <% } %><!-- end else -->
     </ul>

@@ -41,7 +41,7 @@
       <tr>
         <% _.each(channels, function (channel) { %>
         <% if (!channel.owner) return true; %>
-          <td style="vertical-align: middle;"><a href="/channel/<%= channel.id %>"><%= channel.name %></a></td>
+          <td style="vertical-align: middle;"><a href="/c/<%= channel.name %>"><%= channel.name %></a></td>
           <td>
             <div class="btn-group btn-group-sm pull-right">
               <button class="btn btn-info modifyChannel" data-channel-name="<%= channel.name %>" data-channel-description="Supah Cool Description">

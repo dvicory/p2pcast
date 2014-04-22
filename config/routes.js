@@ -49,7 +49,13 @@ module.exports.routes = {
   'get /channel/:id/tree': {
     controller: 'Channel',
     action: 'tree'
+  },
+
+  'get /c/:name': {
+    controller: 'Channel',
+    action: 'show'
   }
+
 
   // If a request to a URL doesn't match any of the custom routes above, it is matched
   // against Sails route blueprints.  See `config/blueprints.js` for configuration options

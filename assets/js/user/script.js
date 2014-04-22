@@ -1,16 +1,33 @@
 // Change color of flash message based on status of updated info
-if($('#flash').text() == "updated successfully") {
-  $('#flash').attr('style','color: green;');
+if($('#flash').text() == "update failed" ) {
+	if($('#flash').hasClass('alert-success')) {
+		$('#flash').removeClass('alert-success');
+	}
+	$('#flash').addClass('alert-danger');
+} else {
+	if($('#flash').hasClass('alert-danger')){
+		$('#flash').removeClass('alert-danger');
+	}
+	$('#flash').addClass('alert-success');
 }
-
 
 // Channel management dialog box
 $('.modifyChannel').click(function(e) {
-	$('#myModal').modal('show');
+	$('#channelModify').modal('show');
 	//console.log($(this).data('channel-name'));
 	var name = $(this).data('channel-name');
 	var description = $(this).data('channel-description');
 	$('#channelName').val(name);
 	$('#channelDescription').val(description);
+});
 
+// Channel delete confirmation modal
+$('.deleteForm').submit(function(e) {
+	e.preventDefault();
+	var form = $(this);
+	$('#channelDelete').modal('show');
+	$('#confirmDelete').click(function(e) {
+		form.unbind('submit');
+		form.submit();
+	});
 });

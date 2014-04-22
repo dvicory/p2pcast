@@ -31,6 +31,8 @@ module.exports.sockets = {
     // this will cause a cascade of publishing
     var socketId = sails.sockets.id(socket);
 
+    if (!socketId || !session.sockets) return;
+
     delete session.sockets[socketId];
     session.save();
 

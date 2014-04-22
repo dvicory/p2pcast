@@ -53,7 +53,9 @@
       return res.redirect('back');
     }).error(function(e) {
       sails.log.error('Auth#login: DB error', e);
-      return res.json({ error: 'DB error' }, 500);
+      req.flash('msg','user already exists');
+      res.redirect('back');
+      //return res.json({ error: 'DB error' }, 500);
     });
   },
 

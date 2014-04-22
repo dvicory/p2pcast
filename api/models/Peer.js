@@ -2,7 +2,7 @@
  * Peer.js
  *
  * @description :: Represents a peer, which is an individual node in the peer to peer network
- * @docs	:: http://sailsjs.org/#!documentation/models
+ * @docs  :: http://sailsjs.org/#!documentation/models
  */
 
 var _ = require('lodash');
@@ -61,7 +61,7 @@ var Peer = {
   },
 
   findConnectionsByPeerId: function findConnectionsByPeerId(peerId, connectionCriteria) {
-    return Peer.findById(peerId)
+    return sails.models.peer.find({ id: peerId })
       .populate('connections')
       .then(function(peer) {
         return _.filter(peer.connections, connectionCriteria);
@@ -92,45 +92,45 @@ var Peer = {
         { endpoint: criteria.where.id }
       ] })
       .then(function(peerConns) {
-	return peerConns;
+        return peerConns;
       })
       .settle()
       .filter(function(inspection) {
-	return inspection.isFulfilled();
+        return inspection.isFulfilled();
       })
       .map(function(inspection) {
-	return inspection.value();
+        return inspection.value();
       })
       .then(function(peerConns) {
-	/*
-	peerConns = _.map(peerConns, function(peerConn) {
-	  return _.pick(peerConn, 'id');
-	});
-	 */
-	// put all ids in an array
-	peerConns = _.pluck(peerConns, 'id');
+        /*
+        peerConns = _.map(peerConns, function(peerConn) {
+          return _.pick(peerConn, 'id');
+        });
+         */
+        // put all ids in an array
+        peerConns = _.pluck(peerConns, 'id');
 
         sails.log.info('Peer#beforeDestroy: peerConns', peerConns);
-	return peerConns;
+        return peerConns;
       })
       .then(function(peerConns) {
-	return PeerConnection.destroy({ id: peerConns });
+        return PeerConnection.destroy({ id: peerConns });
       })
       .then(function(destroyedPeerConns) {
-	// we have an array from both the map and then an array of destroyed peer connections within
-	//destroyedPeerConns = _.flatten(destroyedPeerConns, true);
+        // we have an array from both the map and then an array of destroyed peer connections within
+        //destroyedPeerConns = _.flatten(destroyedPeerConns, true);
         sails.log.info('Peer#beforeDestroy: destroyedPeerConns', destroyedPeerConns);
 
         _.forEach(destroyedPeerConns, function(destroyedPeerConn) {
           //sails.log.info('Peer#beforeDestroy: destroyedPeerConn', destroyedPeerConn);
-	  PeerConnection.publishDestroy(destroyedPeerConn.id, null, { previous: destroyedPeerConn });
-	});
+          PeerConnection.publishDestroy(destroyedPeerConn.id, null, { previous: destroyedPeerConn });
+        });
       })
       .error(function(err) {
-	return cb(err);
+        return cb(err);
       })
       .catch(function(e) {
-	return cb(e);
+        return cb(e);
       })
       .finally(function() {
         return cb();
@@ -144,14 +144,14 @@ var Peer = {
 
     PeerConnection.find(
       { or: [
-	{ initiator: values.id },
-	{ endpoint: values.id }
+  { initiator: values.id },
+  { endpoint: values.id }
       ] })
       .then(function(peerConns) {
-	sails.log.info('Peer#afterUpdate: peerConns', peerConns);
+  sails.log.info('Peer#afterUpdate: peerConns', peerConns);
       })
       .finally(function() {
-	cb();
+  cb();
       });
   },
 
@@ -187,14 +187,14 @@ var Peer = {
       } else {
         console.log('removedPeer.outbound', removedPeer.outbound);
 
-	_.each(removedPeer.outbound, function(outboundConn) {
-	  sails.log.info('Peer#afterPublishDestroy: Destroyed outbound connection', outboundConn.id, 'with', outboundConn.endpoint, 'as the endpoint');
+  _.each(removedPeer.outbound, function(outboundConn) {
+    sails.log.info('Peer#afterPublishDestroy: Destroyed outbound connection', outboundConn.id, 'with', outboundConn.endpoint, 'as the endpoint');
 
-	  PeerConnection.destroy({ id: outboundConn.id })
-	    .then(function() {
-	      PeerConnection.publishDestroy(outboundConn.id);
-	    });
-	});
+    PeerConnection.destroy({ id: outboundConn.id })
+      .then(function() {
+        PeerConnection.publishDestroy(outboundConn.id);
+      });
+  });
       }
 
       return removedPeer.outbound.length;
@@ -212,7 +212,7 @@ var Peer = {
       if (!removedPeer.outbound || removedPeer.outbound.length === 0) {
         sails.log.info('Peer#afterPublishDestroy: No outbound to destroy for peer', removedPeer.id);
       } else {
-	console.log('removedPeer.outbound', removedPeer.outbound);
+  console.log('removedPeer.outbound', removedPeer.outbound);
         _.each(removedPeer.outbound, function(outbound) {
           sails.log.info('Peer#afterPublishDestroy: Destroyed outbound connection', outbound.id, 'with', outbound.endpoint, 'as the endpoint');
           removedPeer.outbound.remove(outbound.id);

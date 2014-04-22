@@ -1,6 +1,6 @@
 <div class="container">
   <h1>Channel List</h1>
-    <% if (channels.length > 0) { %>  
+    <% if (channels.length > 0) { %>
     <table class="table table-hover">
       <thead>
         <tr>
@@ -11,7 +11,7 @@
       <tr>
         <% _.each(channels, function (channel) { %>
         <% if (!channel.owner) return true; %>
-        <td><a href="/channel/<%= channel.id %>"><%= channel.name %></a></td>
+        <td><a href="/c/<%= channel.name %>"><%= channel.name %></a></td>
         <td><%= channel.owner.name %></td>
       </tr>
       <% }) %>

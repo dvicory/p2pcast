@@ -6,7 +6,7 @@
  */
 var Promise = require('bluebird');
 
-// Recursive helper function 
+// Recursive helper function
 function buildTree(peer, treeJSON) {
   return;
 
@@ -56,29 +56,34 @@ var ChannelController = {
   },
 
   show: function(req, res) {
+    var criteria = { id: req.param('id') };
+    if (!criteria.id) criteria = { name: req.param('name') };
 
-    Channel.findOneById(req.param('id')).populate('owner').exec(function(err, channel) {
-      if (err) {
-        sails.log.error('Channel#show: DB error', err);
-        return res.serverError('DB error');
-      }
-
-      if (!channel) {
-        return res.notFound('Channel Not Found');
-      }
-
-      var isBroadcaster = false;
-      if (req.wantsJSON || req.isSocket) {
-        return res.json({
-          channel: channel
-        });
-      } else {
-        return res.view({
-          channel: channel,
-          title: channel.name
-        });
-      }
+    var findChannel = Promise.method(function(criteria) {
+      return Channel.findOne(criteria)
+	.populate('owner');
     });
+
+    findChannel(criteria)
+      .then(function(channel) {
+	if (!channel) {
+	  return res.notFound('Channel not found');
+	}
+
+	if (req.wantsJSON || req.isSocket) {
+	  return res.json({
+	    channel: channel
+	  });
+	} else {
+	  return res.view({
+	    channel: channel,
+	    title: channel.name
+	  });
+	}
+      })
+      .error(function(e) {
+	return res.serverError('Internal server error', e);
+      });
   },
 
   create: function(req, res) {
@@ -88,7 +93,7 @@ var ChannelController = {
     var owner = req.param('owner');
 
     if(!req.session.user) return res.json({ error: 'user not undefined'}, 500);
-    
+
     Channel.createAsync({name: name, owner: req.session.user.id }).then(function(channel) {
       if (!channel) {
         sails.log.info('Channel#create: Channel already exists', name);

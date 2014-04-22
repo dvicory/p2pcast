@@ -6,7 +6,7 @@
   "keywords": [],
   "dependencies": {
     "sails": "~0.10.0-rc5",
-    "waterline": "git://github.com/balderdashy/waterline.git#master",
+    "waterline": "git://github.com/balderdashy/waterline.git#0.10.0-rc7",
     "sails.io.js": "git://github.com/balderdashy/sails.io.js.git#v0.10.0-rc2",
     "sails-disk": "~0.10.0",
     "sails-memory": "~0.10.0",
@@ -33,7 +33,7 @@
     "request": "~2.34.0",
     "deamdify": "~0.1.1",
     "deglobalify": "~0.2.0",
-    "bluebird": "~1.1.1",
+    "bluebird": "~1.2.3",
     "bcrypt-nodejs": "~0.0.3",
     "bcrypt": "~0.7.7",
     "lodash": "~2.4.1",

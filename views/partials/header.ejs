@@ -59,7 +59,7 @@
                   <input type="password" class="form-control" name="password" id="newPassword" placeholder="Password">
                 </div>
                 <li class="divider"></li>
-                <p class="lead" id="flashRegister" style="color: red;"><small><%= req.flash('msg') %></small></p>
+                <p class="lead" id="flashRegister" style="color: red;"><small><%= req.flash('registerMsg') %></small></p>
                 <input class="btn btn-primary" style="clear: left; width: 100%; height: 32px; font-size: 13px;" value="Sign Up" id="signup" type="submit" />
               </fieldset>
             </form>
@@ -85,7 +85,7 @@
               <input id="user_remember_me" style="float: left; margin-right: 10px;" type="checkbox" name="user[remember_me]" value="1" />
               <label class="string optional" for="user_remember_me"> Remember me</label>
               <li class="divider"></li>
-              <p class="lead" id="flashLogin" style="color: red;"><small><%= req.flash('msg') %></small></p>
+              <p class="lead" id="flashLogin" style="color: red;"><small><%= req.flash('loginMsg') %></small></p>
               <input class="btn btn-primary" style="clear: left; width: 100%; height: 32px; font-size: 13px;" value="Sign In" id="login" type="submit" />
             </fieldset>
           </form>

@@ -104,6 +104,27 @@ var ChannelController = {
 
   },
 
+  destroy: function(req, res) {
+    var channelId = req.param('id');
+    Channel.findOneById(channelId)
+      .then(function foundRecord (channel) {
+        if (!channel) return res.notFound('No channel found with the specified `id`.');
+        req.flash('msg','Channel Deleted');
+        res.redirect('back');
+        return Channel.destroy(channelId);
+      })
+      .then(function (channel) {
+        Channel.publishDestroy(channelId, req, { previous: channel });
+        req.flash('msg','Channel Deleted');
+        return res.redirect('back');
+        //return res.ok(channel);
+      });
+      // .error(function(e) {
+      //   sails.log.error('Channel#destroy: DB error', e);
+      //   return res.serverError(e);
+      // });
+  },
+
   tree: function(req, res) {
     var channelId = req.param('id');
 

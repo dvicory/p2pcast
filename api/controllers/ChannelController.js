@@ -6,42 +6,32 @@
  */
 var Promise = require('bluebird');
 
-// Recusrive helper function 
-function buildtree(peer, treeJSON) {
+// Recursive helper function 
+function buildTree(peer, treeJSON) {
+  return;
 
-  //rootchildren = peer.forEach(getChildren)
+  // get an array of children peer connections
+  childrenConnections = peer.getChildrenConnections();
 
-  // get an array of children (peer) connections
-  childrenConnections = peer.getChildren();
+  console.info('childrenConnections', childrenConnections);
 
-  children = {};
+  children = [];
 
   // loop through the peer connections finding the peer object
-  // and adding it to the children array based on their endpoint id 
-  for(var j = 0; i < childrenConnections.length; j++) {
-    children.push(findChildreByPeerId(childrenConnections[i].endpoint.id));
-  }
+  // and adding it to the children array based on their endpoint id
+  _.forEach(childrenConnections, function(childrenConnection) {
+    children.push(Peer.findChildrenByPeerId(childrenConnection.endpoint.id));
+  });
 
+  _.forEach(children, function(child) {
+    if (_.isEmpty(child)) return;
 
-  for(var i = 0; i < children.length; i++) {
-    // check to see if returned empty object 
-    // empty object means no more children
-    if(!_.isEmpty(children[i])) {
-      
-      var temp = {"name": children[i].user.name,
-                  "children": []
-                  };
-
-      // add it to the children array            
-      treeJSON.children.push(temp);
-
-      nextTreelevel = treeJSON.children[i];
-
-      buildtree(peer, nextTreelevel);
-    }
-  }
+    var temp = { name: child.socketId, children: [] };
+    treeJSON.children.push(temp);
+    //nextTreelevel = treeJSON.children;
+    buildTree(peer, temp);
+  });
 }
-
 
 var ChannelController = {
   index: function(req, res) {
@@ -114,35 +104,52 @@ var ChannelController = {
 
   },
 
-  treeCreate: function(req, res) {
-    if (!req.isSocket) {
-      return res.badRequest('Peer management only supported with sockets');
-    }
+  tree: function(req, res) {
+    var channelId = req.param('id');
 
-    var socketId = req.socket.id;
-    var channelId = req.param('channel');
+    var getChannel = Promise.method(function(channelId) {
+      return Channel.findOneById(channelId)
+        .then(function(channel) {
+          if (!channel) {
+            return Promise.reject(res.notFound('Channel not found'));
+          }
 
-    // find the peer who is the broadcaster & begin from there 
-    // TODO - might have to move this before helper function 
-    var root = Peer.findOne({channel: channelId , broadcaster: true})
-    .then( function(peer) {
-
-      // create init object with the root 
-      treeJSON = [
-        { "name": "broadcaster - " + peer.user.name,
-          "children" : []
-        }
-      ]
-
-      // now for the recursive magic 
-      buildtree(root, treeJSON[0]);
-
-      // ready to be served
-      return res.json(treeJSON);
-
+          return channel;
+        });
     });
 
-  },
+    getChannel(channelId)
+      .then(function(channel) {
+        var findOnePeer = Peer.findOne({ channel: channelId, broadcaster: true }).populate('connections');
+        return [channel, findOnePeer];
+      })
+      .spread(function(channel, peer) {
+        if (!peer) {
+          return Promise.reject(new Error('No broadcasters found'));
+        }
+
+        var treeJSON = { name: 'broadcaster', children: [] };
+        buildTree(peer, treeJSON);
+
+        return [channel, peer, treeJSON];
+      })
+      .spread(function(channel, peer, treeJSON) {
+        if (req.wantsJSON || req.isSocket) {
+          return res.json(treeJSON, 200);
+        } else {
+          return res.view({
+            channel: channel,
+            title: channel.name,
+            treeJSON: treeJSON
+          });
+        }
+      })
+      .error(function(e) {
+        sails.log.error('Channel#treeCreate: Internal server error', e);
+        return res.serverError('Internal server error', e);
+      });
+
+  }
 
 };
 

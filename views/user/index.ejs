@@ -44,7 +44,7 @@
           <td style="vertical-align: middle;"><a href="/c/<%= channel.name %>"><%= channel.name %></a></td>
           <td>
             <div class="btn-group btn-group-sm pull-right">
-              <button class="btn btn-info modifyChannel" data-channel-name="<%= channel.name %>" data-channel-description="Supah Cool Description">
+              <button class="btn btn-info modifyChannel" data-channel-id="<%= channel.id %>" data-channel-name="<%= channel.name %>" data-channel-description="<%= channel.description %>">
                 <span class="glyphicon glyphicon-cog"></span>
                   Modify
               </button>
@@ -76,7 +76,7 @@
           <h4 class="modal-title" id="myModalLabel">Update Channel Info</h4>
         </div>
         <div class="modal-body">
-          <form role="form" action="/channel/update" method="post">
+          <form role="form" id="updateChannelForm" action="/channel/update" method="post">
             <fieldset class='textbox' style="padding:0px; ">
               <div class="col-sm-8 form-group">
                 <label for="channelName">Channel Name: </label>

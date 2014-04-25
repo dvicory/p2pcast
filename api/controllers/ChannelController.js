@@ -61,28 +61,28 @@ var ChannelController = {
 
     var findChannel = Promise.method(function(criteria) {
       return Channel.findOne(criteria)
-	.populate('owner');
+  .populate('owner');
     });
 
     findChannel(criteria)
       .then(function(channel) {
-	if (!channel) {
-	  return res.notFound('Channel not found');
-	}
+  if (!channel) {
+    return res.notFound('Channel not found');
+  }
 
-	if (req.wantsJSON || req.isSocket) {
-	  return res.json({
-	    channel: channel
-	  });
-	} else {
-	  return res.view({
-	    channel: channel,
-	    title: channel.name
-	  });
-	}
+  if (req.wantsJSON || req.isSocket) {
+    return res.json({
+      channel: channel
+    });
+  } else {
+    return res.view({
+      channel: channel,
+      title: channel.name
+    });
+  }
       })
       .error(function(e) {
-	return res.serverError('Internal server error', e);
+  return res.serverError('Internal server error', e);
       });
   },
 
@@ -107,6 +107,32 @@ var ChannelController = {
       return res.json({ error: 'DB error' }, 500);
     });
 
+  },
+
+  update: function(req, res) {
+    var name  = req.param('name');
+    var description = req.param('description');
+    var id = req.param('id');
+
+    if(typeof id === 'undefined'){
+      req.flash('msg','channel id does not exist');
+      console.log('channel id does not exist.');
+      return res.redirect('/user');
+    }
+
+    var updatedChannel;
+    Channel.update({id: id }, {name: name, description: description},
+      function(err, channel) {
+        if (err) {
+          req.flash('msg','update failed');
+          console.log(err);
+          return res.redirect('/user');
+        } else {
+          console.log("Channel updated:", channel);
+          req.flash('msg','channel updated successfully');
+          return res.redirect('/user');
+        }
+    });
   },
 
   destroy: function(req, res) {

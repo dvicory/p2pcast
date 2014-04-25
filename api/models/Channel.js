@@ -12,17 +12,23 @@ var Channel = {
       required: true,
       unique: true,
       minLength: 4,
-      maxLength: 100
+      maxLength: 80
+    },
+
+    description: {
+      type: 'text',
+      maxLength: 2000
     },
 
     owner: {
-      model: 'User',
+      model: 'user',
       required: true
     },
 
     peers: {
-      collection: 'Peer',
-      via: 'channel'
+      collection: 'peer',
+      via: 'channel',
+      required: true
     }
 
   }

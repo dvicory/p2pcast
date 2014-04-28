@@ -24,6 +24,31 @@ module.exports.bootstrap = function (cb) {
     return deferred.promise;
   };
 
+  // https://github.com/petkaantonov/bluebird/blob/master/API.md#filterfunction-filterer---promise
+  Promise.prototype.settledWithFulfill = function settledWithFulfill() {
+    return this.settle()
+      .filter(function(inspection){
+        return inspection.isFulfilled();
+      })
+      .map(function(inspection){
+        return inspection.value();
+      });
+  };
+
+  // https://gist.github.com/victorquinn/8030190
+  Promise.promiseWhile = function promiseWhile(condition, action) {
+    return new Promise(function(resolve, reject) {
+      var loop = function() {
+        if (!condition()) return resolve();
+        return Promise.cast(action())
+          .then(loop)
+          .catch(reject);
+      };
+
+      process.nextTick(loop);
+    });
+  };
+
   // It's very important to trigger this callack method when you are finished
   // with the bootstrap!  (otherwise your server will never lift, since it's waiting on the bootstrap)
   cb();

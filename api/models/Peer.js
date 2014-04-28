@@ -19,7 +19,7 @@ var Peer = {
     },
 
     user: {
-      model: 'User'
+      model: 'user'
     },
 
     channel: {
@@ -57,23 +57,82 @@ var Peer = {
 
     getParentConnections: function getParents() {
       return _.filter(this.connections, { initiator: this.id });
+    },
+
+    buildTree: function buildTree(connectionCriteria) {
+      var start = process.hrtime();
+
+      connectionCriteria = connectionCriteria || { state: 'established' };
+
+      // this is the root
+      var root = this;
+
+      // Q is the queue to build the tree from
+      var Q = [root];
+
+      // V is the set that has already been seen
+      var V = Object.create(null);
+      V[root.id] = true;
+
+      return Promise.promiseWhile(function() {
+         //return Q.length !== 0;
+        return Q.getLength() !== 0;
+      }, function() {
+        // fairly standard BFS-based tree building
+
+        // get the current peer (parent)
+        //var peer = Q.shift();
+        var peer = Q.dequeue();
+
+        return Peer.findChildrenConnectionsByPeerId(peer.id, connectionCriteria)
+          .map(function(peerConn) {
+            // retrieves the child peer given a peer connection
+            return PeerConnection.getOppositePeer(peerConn, peer);
+          })
+          .then(function(children) {
+            _.forEach(children, function(child) {
+              // TODO use ES6 sets?
+              if (!V[child.id]) {
+                sails.log.silly('adding child', child, 'to parent', peer);
+
+                // is seen and also needs to be visited later
+                V[child.id] = true;
+                Q.push(child);
+
+                // create children array if necessary
+                if (!_.isArray(peer.children)) {
+                  peer.children = [];
+                }
+
+                peer.children.push(child);
+              }
+            });
+          });
+      })
+      .then(function() {
+        var diff = process.hrtime(start);
+        sails.log.info('buildTree took', diff[0] * 1e9 + diff[1], 'nanoseconds');
+        sails.log.verbose('built tree', root);
+        return root;
+      });;
     }
+
   },
 
   findConnectionsByPeerId: function findConnectionsByPeerId(peerId, connectionCriteria) {
-    return sails.models.peer.find({ id: peerId })
+    return sails.models.peer.findOne({ id: peerId })
       .populate('connections')
       .then(function(peer) {
         return _.filter(peer.connections, connectionCriteria);
       });
   },
 
-  findChildrenByPeerId: function findChildrenByPeerId(peerId) {
-    return Peer.findConnectionsByPeerId(peerId, { endpoint: peerId });
+  findChildrenConnectionsByPeerId: function findChildrenConnectionsByPeerId(peerId, extraCriteria) {
+    return Peer.findConnectionsByPeerId(peerId, _.defaults({ endpoint: peerId }, extraCriteria));
   },
 
-  findParentsByPeerId: function findChildrenByPeerId(peerId) {
-    return Peer.findConnectionsByPeerId(peerId, { initiator: peerId });
+  findParentConnectionsByPeerId: function findParentConnectionsByPeerId(peerId, extraCriteria) {
+    return Peer.findConnectionsByPeerId(peerId, _.defaults({ initiator: peerId }, extraCriteria));
   },
 
   beforeUpdate: function beforePeerUpdate(values, cb) {
@@ -144,14 +203,14 @@ var Peer = {
 
     PeerConnection.find(
       { or: [
-  { initiator: values.id },
-  { endpoint: values.id }
+        { initiator: values.id },
+        { endpoint: values.id }
       ] })
       .then(function(peerConns) {
-  sails.log.info('Peer#afterUpdate: peerConns', peerConns);
+        sails.log.info('Peer#afterUpdate: peerConns', peerConns);
       })
       .finally(function() {
-  cb();
+        cb();
       });
   },
 
@@ -187,14 +246,14 @@ var Peer = {
       } else {
         console.log('removedPeer.outbound', removedPeer.outbound);
 
-  _.each(removedPeer.outbound, function(outboundConn) {
-    sails.log.info('Peer#afterPublishDestroy: Destroyed outbound connection', outboundConn.id, 'with', outboundConn.endpoint, 'as the endpoint');
+        _.each(removedPeer.outbound, function(outboundConn) {
+          sails.log.info('Peer#afterPublishDestroy: Destroyed outbound connection', outboundConn.id, 'with', outboundConn.endpoint, 'as the endpoint');
 
-    PeerConnection.destroy({ id: outboundConn.id })
-      .then(function() {
-        PeerConnection.publishDestroy(outboundConn.id);
-      });
-  });
+          PeerConnection.destroy({ id: outboundConn.id })
+            .then(function() {
+              PeerConnection.publishDestroy(outboundConn.id);
+            });
+        });
       }
 
       return removedPeer.outbound.length;
@@ -212,7 +271,7 @@ var Peer = {
       if (!removedPeer.outbound || removedPeer.outbound.length === 0) {
         sails.log.info('Peer#afterPublishDestroy: No outbound to destroy for peer', removedPeer.id);
       } else {
-  console.log('removedPeer.outbound', removedPeer.outbound);
+        console.log('removedPeer.outbound', removedPeer.outbound);
         _.each(removedPeer.outbound, function(outbound) {
           sails.log.info('Peer#afterPublishDestroy: Destroyed outbound connection', outbound.id, 'with', outbound.endpoint, 'as the endpoint');
           removedPeer.outbound.remove(outbound.id);

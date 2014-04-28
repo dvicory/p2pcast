@@ -73,6 +73,17 @@ var PeerConnection = {
      */
   },
 
+  getOppositePeer: function getOppositePeer(peerConnection, localPeer) {
+    var oppositePeer = peerConnection.endpoint;
+
+    if (oppositePeer === localPeer.id) {
+      oppositePeer = peerConnection.initiator;
+    }
+
+    return Peer.findOneById(oppositePeer)
+      .populate('connections');
+  },
+
   afterUpdate: function afterPeerConnectionUpdate(values, cb) {
     sails.log.info('PeerConnection#afterUpdate: values', values);
     cb();

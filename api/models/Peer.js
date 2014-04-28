@@ -75,14 +75,12 @@ var Peer = {
       V[root.id] = true;
 
       return Promise.promiseWhile(function() {
-         //return Q.length !== 0;
-        return Q.getLength() !== 0;
+        return Q.length !== 0;
       }, function() {
         // fairly standard BFS-based tree building
 
         // get the current peer (parent)
-        //var peer = Q.shift();
-        var peer = Q.dequeue();
+        var peer = Q.shift();
 
         return Peer.findChildrenConnectionsByPeerId(peer.id, connectionCriteria)
           .map(function(peerConn) {

@@ -134,8 +134,6 @@ var ChannelController = {
   },
 
   tree: function(req, res) {
-    profiler.startProfiling('buildTree');
-
     var channelId = req.param('id');
 
     var getChannel = Promise.method(function(channelId) {
@@ -164,8 +162,6 @@ var ChannelController = {
       })
       .spread(function(channel, peer, treeJSON) {
         console.log('sending treeJSON', treeJSON);
-
-        profiler.stopProfiling('buildTree');
 
         if (req.wantsJSON || req.isSocket) {
           return res.json(treeJSON, 200);

@@ -5,10 +5,10 @@
  * @docs        :: http://sailsjs.org/#!documentation/controllers
  */
 
- var _ = require('lodash');
- var Promise = require('bluebird');
+var _ = require('lodash');
+var Promise = require('bluebird');
 
- var UserController = {
+var UserController = {
   index: function(req, res) {
     if(req.session.user) {
 
@@ -25,7 +25,7 @@
         } else {
           return res.view({
             channels: channels,
-            title: "Profile Page"
+            title: 'Profile Page'
           });
         }
       });
@@ -35,9 +35,7 @@
   },
 
   create: function(req, res) {
-    Promise.promisifyAll(User);
-
-    var name  = req.param('name');
+    var name = req.param('name');
     var email = req.param('email');
     var password = req.param('password');
 
@@ -83,6 +81,6 @@
     });
   }
 
-}
+};
 
 module.exports = UserController;

@@ -14,12 +14,6 @@ const PeerConnectionStates = [ 'reserved', 'connecting',
 var PeerConnection = {
   adapter: 'memory',
 
-  /*
-   autosubscribe: ['create', 'update', 'destroy', 'message',
-   'add:initiator', 'add:receiver',
-   'remove:initiator', 'remove:receiver'],
-   */
-
   types: {
     state: function(state) {
       return _.contains(PeerConnectionStates, state);
@@ -45,32 +39,6 @@ var PeerConnection = {
       required: true
     }
 
-    /*
-     getPeerEndpoint: function getPeerEndpoint(selfPeer) {
-     var resolver = Promise.pending();
-
-     if (!_.isObject(selfPeer)) {
-     resolver.reject(new Error('selfPeer is not an object'));
-     }
-
-     // what is the peer's endpoint id?
-     // it could be the endpoint is either the initiator or receiver
-     var endpointId = this.initiator;
-
-     if (endpointId === selfPeer.id) {
-     // if the guessed endpoint id is the same as the peer's id, then we really want the other peer
-     endpointId = this.receiver;
-     }
-
-     // TODO figure out how to use promise to do this resolver
-     Peer.findOneById(endpointId).populate('parent').populate('children').exec(function(err, peer) {
-     if (err) resolver.reject(err);
-     else resolver.resolve(peer);
-     });
-
-     return resolver.promise;
-     }
-     */
   },
 
   getOppositePeer: function getOppositePeer(peerConnection, localPeer) {

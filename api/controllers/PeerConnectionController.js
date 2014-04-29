@@ -5,9 +5,10 @@
  * @docs        :: http://sailsjs.org/#!documentation/controllers
  */
 
+var _ = require('lodash');
 var Promise = require('bluebird');
 
-module.exports = {
+var PeerConnectionController = {
   create: function(req, res) {
     if (!req.isSocket) {
       return res.badRequest('Peer management only supported with sockets');
@@ -33,40 +34,30 @@ module.exports = {
     // second, we now have the initiator id
     // we will then select a peer for them
     var getPeerMatch = function(initiatorPeer) {
-      sails.log.info('step2 initiator', initiatorPeer);
+      sails.log.silly('PeerConnectionController#create: getPeerMatch - initiatorPeer', initiatorPeer);
 
       return Peer.find()
         .where({ channel: initiatorPeer.channel.id })
         .populate('connections')
         .then(function(peers) {
           if (!peers || peers.length === 0) {
-            sails.log.error('step2 no peers', peers);
             return Promise.reject(res.notFound('No peer connections found'));
           }
 
           // only choose peers that can rebroadcast
           // also, don't choose yourself
-          sails.log.info('peer match initial candidates', peers);
+          sails.log.verbose('PeerConnectionController#create: peer match initial candidates', peers);
 
           peers = _.filter(peers, function(peer) {
-            sails.log.info('peer.id', peer.id, 'canRebroadcast', peer.canRebroadcast(),
-              'initiatorPeer.id', initiatorPeer.id);
+            sails.log.silly('PeerConnectionController#create: filter - peer.id', peer.id,
+                            'canRebroadcast', peer.canRebroadcast(),
+                            'initiatorPeer.id', initiatorPeer.id);
             return peer.canRebroadcast() && peer.id !== initiatorPeer.id;
           });
 
-          sails.log.info('peers narrowed to', peers);
-
-          // now choose the one with the min number of children
-          // but add some randomness
-          /*
-          var receiverPeer = _.min(_.shuffle(peers), function(peer) {
-            console.log('peer.id outbound length', peer.outbound.length);
-            return peer.outbound.length;
-          });
-          */
+          sails.log.verbose('PeerConnectionController#create: peer match narrowed to', peers);
 
           var receiverPeer = _.min(_.shuffle(peers), function(peer) {
-            console.log('peer.id connections length', peer.connections.length);
             return peer.getChildrenConnections().length;
           });
 
@@ -74,7 +65,7 @@ module.exports = {
             return Promise.reject(res.notFound('No peer connections available'));
           }
 
-          sails.log.info('candidate peer is', receiverPeer);
+          sails.log.verbose('PeerConnectionController#create: candidate peer is', receiverPeer);
 
           return [initiatorPeer, receiverPeer];
         });
@@ -82,7 +73,7 @@ module.exports = {
 
     // finally, we will use that to hook them up together
     var hookupPeerConnection = function(initiatorPeer, receiverPeer) {
-      sails.log.info('step3 initiator', initiatorPeer, 'receiver', receiverPeer);
+      sails.log.silly('PeerConnectionController#create: hookupPeerConnection - initiatorPeer', initiatorPeer, 'receiverPeer', receiverPeer);
 
       var makePc = Promise.method(function(receiverPeer) {
         return PeerConnection.create({ state: 'reserved', endpoint: receiverPeer.id, initiator: initiatorPeer.id })
@@ -142,10 +133,10 @@ module.exports = {
           return [peerConn, initiatorPeer, receiverPeer];
         })
         .error(function(e) {
-          sails.log.error('makePc error', e);
+          sails.log.error('PeerConnectionController#create: makePc error', e);
         })
         .catch(function(e) {
-          sails.log.error('makePc catch', e);
+          sails.log.error('PeerConnectionController#create: makePc catch', e);
         });
     };
 
@@ -153,7 +144,9 @@ module.exports = {
 
     init
       .spread(function(peerConn, initiatorPeer, receiverPeer) {
-        sails.log.info(peerConn, initiatorPeer, receiverPeer);
+        sails.log.info('PeerConnection#create: final - peerConn', peerConn,
+                       'initiatorPeer', initiatorPeer,
+                       'receiverPeer', receiverPeer);
 
         // subscribe peer connection to socket
         //PeerConnection.subscribe(req.socket, peerConn);
@@ -221,7 +214,9 @@ module.exports = {
             updated = updated[0];
 
             // publish update if needed
-            sails.log.info('PeerConnection#message: updateState for peer connection id', updated.id, 'new state', updated.state, 'previous', peerConn);
+            sails.log.info('PeerConnection#message: updateState for peer connection id', updated.id,
+                           'new state', updated.state, 'previous', peerConn);
+
             PeerConnection.publishUpdate(updated.id, { state: updated.state }, null, { previous: peerConn });
 
             return peerConn;
@@ -241,7 +236,8 @@ module.exports = {
         // it is the remote peer's responsibility to make an offer using message
         // this will, in effect, subscribe them to the future of the channel
 
-        sails.log.info('PeerConnection#message: Subscribing socket', socketId, 'to peer connection', peerConn.id);
+        sails.log.verbose('PeerConnection#message: Subscribing socket', socketId,
+                          'to peer connection', peerConn.id);
         PeerConnection.subscribe(req.socket, peerConn);
 
         // now we'll forward the message on, exclude the sender
@@ -294,7 +290,8 @@ module.exports = {
     getPeerConnectionById(peerConnectionId)
       .then(destroyPeerConnection)
       .then(function(peerConn) {
-        sails.log.info('PeerConnection#destroy: Destroying peer connection', peerConn.id, 'by request of socket', socketId);
+        sails.log.info('PeerConnection#destroy: Destroying peer connection',
+                       peerConn.id, 'by request of socket', socketId);
 
         // publish the destroy
         PeerConnection.publishDestroy(peerConn.id, null, { previous: peerConn });
@@ -338,7 +335,7 @@ module.exports = {
 
     // update reserved state to connecting state as required
     var updateState = Promise.method(function(peerConn) {
-      sails.log.info('PeerConnection#finalize: step 2', peerConn);
+      sails.log.info('PeerConnection#finalize: updateState - peerConn', peerConn);
 
       if (peerConn.state !== 'established') {
         var newState = 'established';
@@ -352,7 +349,8 @@ module.exports = {
           throw new Error('Neither the receiver or initiator peer were responsible for finalizing the peer connection');
         }
 
-        sails.log.info('PeerConnection#finalize: step2 updating peer connection', peerConn.id, 'with new state', newState, 'from old state', peerConn.state);
+        sails.log.info('PeerConnection#finalize: updateState - updating peer connection', peerConn.id,
+                       'with new state', newState, 'from old state', peerConn.state);
 
         return PeerConnection.update({ id: peerConn.id }, { state: newState })
           .then(function(updated) {
@@ -363,7 +361,8 @@ module.exports = {
             updated = updated[0];
 
             // publish update
-            sails.log.info('PeerConnection#finalize: updateState for peer connection id', updated.id, 'new state', updated.state, 'previous', peerConn);
+            sails.log.info('PeerConnection#finalize: updateState - publishing for peer connection id', updated.id, 'new state', updated.state, 'previous', peerConn);
+
             PeerConnection.publishUpdate(updated.id, { state: updated.state }, null, { previous: peerConn });
 
             return peerConn;
@@ -396,3 +395,5 @@ module.exports = {
   }
 
 };
+
+module.exports = PeerConnectionController;

@@ -5,6 +5,7 @@
  * @docs        :: http://sailsjs.org/#!documentation/controllers
  */
 
+var _ = require('lodash');
 var Promise = require('bluebird');
 
 var ChannelController = {
@@ -86,7 +87,7 @@ var ChannelController = {
   },
 
   update: function(req, res) {
-    var name  = req.param('name');
+    var name = req.param('name');
     var description = req.param('description');
     var id = req.param('id');
 
@@ -96,7 +97,6 @@ var ChannelController = {
       return res.redirect('/user');
     }
 
-    var updatedChannel;
     Channel.update({ id: id },
                    { name: name, description: description },
                    function(err, channel) {
@@ -114,6 +114,7 @@ var ChannelController = {
 
   destroy: function(req, res) {
     var channelId = req.param('id');
+
     Channel.findOneById(channelId)
       .then(function foundRecord (channel) {
         if (!channel) {
@@ -128,7 +129,7 @@ var ChannelController = {
       .then(function (channel) {
         Channel.publishDestroy(channelId, req, { previous: channel });
 
-        req.flash('msg','Channel Deleted');
+        req.flash('msg', 'Channel deleted');
         return res.redirect('back');
       });
   },

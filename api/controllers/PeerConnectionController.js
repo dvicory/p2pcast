@@ -90,7 +90,6 @@ var PeerConnectionController = {
       });
 
       var saveInitiator = function(peerConn, initiatorPeer) {
-        console.log('OUTBOUND', peerConn);
         initiatorPeer.connections.add(peerConn.id);
 
         return initiatorPeer.save()
@@ -104,7 +103,6 @@ var PeerConnectionController = {
       };
 
       var saveReceiver = function(peerConn, receiverPeer) {
-        console.log('INBOUND', peerConn.endpoint);
         receiverPeer.connections.add(peerConn.id);
 
         return receiverPeer.save()

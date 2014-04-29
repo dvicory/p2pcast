@@ -1,8 +1,14 @@
 <div class="row">
   <!-- Flash message -->
   <% if( !_.isUndefined(req.session.flash) && !_.isUndefined(req.session.flash.msg)) { %>
-      <div class="alert alert-success" id="flash">
-        <p class="lead"><strong><%- req.flash('msg') %></strong></p>
+      <div class="alert alert-success flash">
+        <p class="lead"><%= req.flash('msg') %></p>
+      </div>
+  <% } %>
+
+  <% if( !_.isUndefined(req.session.flash) && !_.isUndefined(req.session.flash.errors)) { %>
+      <div class="alert alert-danger flash">
+        <p class="lead"><%= JSON.stringify(req.flash('errors')) %></p>
       </div>
   <% } %>
 

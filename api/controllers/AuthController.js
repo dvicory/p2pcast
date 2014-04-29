@@ -14,19 +14,23 @@ var AuthController = {
     var email = req.param('email');
     var challenge = req.param('password');
 
-    User.findOneByEmailAsync(email).then(function(user) {
-      if (!user) {
-        sails.log.info('Auth#login: Received invalid login, no user', email);
-        req.flash('loginMsg','Invalid email or password');
-        res.redirect('back');
-      } else {
-        bcrypt.compareAsync(challenge, user.password).then(function(match) {
-          if (match) {
-            // passwords match, set session
-            req.session.user = { id: user.id, name: user.name, email: user.email };
-            req.session.save();
-            res.redirect('back');
-          } else {
+    User.findOneByEmail(email)
+      .then(function(user) {
+        if (!user) {
+          sails.log.warn('AuthController#login: Received invalid login, no user', email);
+          return res.badRequest('Invalid email or password', 'back');
+        }
+
+        return bcrypt.compareAsync(challenge, user.password)
+          .then(function(match) {
+            if (match) {
+              // passwords match, set session
+              req.session.user = { id: user.id, name: user.name, email: user.email };
+              req.session.save();
+
+              return res.redirect('back');
+            }
+
             // handle invalid password
             // if they're already logged in (?!), log them out
             if (req.session.user) {
@@ -36,19 +40,19 @@ var AuthController = {
               req.session.save();
             }
 
-            sails.log.info('Auth#login: Received invalid password attempt', email);
-            req.flash('loginMsg','Invalid email or password');
-            res.redirect('back');
-          }
-        }).error(function(e) {
-          sails.log.error('Auth#login: Server error', e);
-          return res.json({ error: 'Server error' }, 500);
-        });
-      }
-    }).error(function(e) {
-      sails.log.error('Auth#login: DB error', e);
-      return res.json({ error: 'DB error' }, 500);
-    });
+            sails.log.warn('AuthController#login: Received invalid password attempt for', email);
+            return res.badRequest('Invalid email or password', 'back');
+          })
+          .error(function(err) {
+            return res.serverError(err);
+          });
+      })
+      .error(function(err) {
+        if (err.code === 'E_VALIDATION')
+          return res.badRequest(err, 'back');
+        else
+          return res.serverError(err);
+      });
   },
 
   logout: function(req, res) {

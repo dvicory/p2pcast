@@ -10,36 +10,31 @@ var Promise = require('bluebird');
 
 var ChannelController = {
   index: function(req, res) {
-
-    Channel.find().populate('owner').exec(function(err, channels) {
-      if (err) {
-        sails.log.error('Channel#index: DB error', err);
-        return res.serverError('DB error');
-      }
-
-      if (req.wantsJSON || req.isSocket) {
-        return res.json({
-          channels: channels
-        });
-      } else {
-        return res.view({
-          channels: channels,
-          title: "Channels"
-        });
-      }
-    });
+    Channel.find()
+      .populate('owner')
+      .then(function(channels) {
+        if (req.wantsJSON || req.isSocket) {
+          return res.json({
+            channels: channels
+          });
+        } else {
+          return res.view({
+            channels: channels,
+            title: "Channels"
+          });
+        }
+      })
+      .error(function(err) {
+        return res.serverError(err);
+      });
   },
 
   show: function(req, res) {
     var criteria = { id: req.param('id') };
     if (!criteria.id) criteria = { name: req.param('name') };
 
-    var findChannel = Promise.method(function(criteria) {
-      return Channel.findOne(criteria)
-        .populate('owner');
-    });
-
-    findChannel(criteria)
+    Channel.findOne(criteria)
+      .populate('owner')
       .then(function(channel) {
         if (!channel) {
           return res.notFound('Channel not found');
@@ -56,34 +51,36 @@ var ChannelController = {
           });
         }
       })
-      .error(function(e) {
-        return res.serverError('Internal server error', e);
+      .error(function(err) {
+        if (err.code === 'E_VALIDATION')
+          return res.badRequest(err);
+        else
+          return res.serverError(err);
       });
   },
 
   create: function(req, res) {
-    Promise.promisifyAll(Channel);
-
-    var name  = req.param('name');
-    var owner = req.param('owner');
-
     if (!req.session.user) {
-      return res.json({ error: 'user not undefined'}, 500);
+      return res.forbidden('Not logged in');
     }
 
-    Channel.createAsync({name: name, owner: req.session.user.id }).then(function(channel) {
-      if (!channel) {
-        sails.log.info('Channel#create: Channel already exists', name);
-        return res.json({ error: 'Channel already exists' }, 500);
-      }
+    var name = req.param('name');
+    var owner = req.session.user.id;
 
-      return res.redirect('/channel/' + channel.id);
+    Channel.create({ name: name, owner: owner })
+      .then(function(channel) {
+        if (!channel) {
+          return res.serverError('ChannelController#create: Could not create channel', name, 'with owner', owner);
+        }
 
-    }).error(function(e) {
-      sails.log.error('Auth#create: DB error', e);
-      return res.json({ error: 'DB error' }, 500);
-    });
-
+        return res.redirect('/channel/' + channel.id);
+      })
+      .error(function(err) {
+        if (err.code === 'E_VALIDATION')
+          return res.badRequest(err);
+        else
+          return res.serverError(err);
+      });
   },
 
   update: function(req, res) {
@@ -91,46 +88,48 @@ var ChannelController = {
     var description = req.param('description');
     var id = req.param('id');
 
-    if(typeof id === 'undefined'){
-      req.flash('msg','channel id does not exist');
-      console.log('channel id does not exist.');
-      return res.redirect('/user');
+    if (_.isUndefined(id)){
+      return res.badRequest('Channel ID is required', 'back');
     }
 
     Channel.update({ id: id },
-                   { name: name, description: description },
-                   function(err, channel) {
-                     if (err) {
-                       req.flash('msg', 'update failed');
-                       console.log(err);
-                       return res.redirect('/user');
-                     } else {
-                       console.log("Channel updated:", channel);
-                       req.flash('msg','channel updated successfully');
-                       return res.redirect('/user');
-                     }
-                   });
+                   { name: name, description: description })
+      .then(function(channel) {
+        req.flash('msg', 'Channel updated successfully');
+        return res.redirect('back');
+      })
+      .error(function(err) {
+        if (err.code === 'E_VALIDATION')
+          return res.badRequest(err, 'back');
+        else
+          return res.serverError(err);
+      });
   },
 
   destroy: function(req, res) {
     var channelId = req.param('id');
 
     Channel.findOneById(channelId)
-      .then(function foundRecord (channel) {
+      .populate('owner')
+      .populate('peers')
+      .then(function(channel) {
         if (!channel) {
-          return res.notFound('No channel found with the specified `id`.');
+          return res.notFound('Channel not found');
         }
 
-        req.flash('msg','Channel Deleted');
-        res.redirect('back');
-
-        return Channel.destroy(channelId);
+        return [channel, Channel.destroy({ id: channelId })];
       })
-      .then(function (channel) {
+      .spread(function(channel) {
         Channel.publishDestroy(channelId, req, { previous: channel });
 
         req.flash('msg', 'Channel deleted');
         return res.redirect('back');
+      })
+      .error(function(err) {
+        if (err.code === 'E_VALIDATION')
+          return res.badRequest(err, 'back');
+        else
+          return res.serverError(err);
       });
   },
 
@@ -141,29 +140,31 @@ var ChannelController = {
       return Channel.findOneById(channelId)
         .then(function(channel) {
           if (!channel) {
-            return Promise.reject(res.notFound('Channel not found'));
+            return res.notFound('Channel not found');
           }
 
           return channel;
         });
     });
 
-    getChannel(channelId)
+    Channel.findOneById(channelId)
       .then(function(channel) {
+        if (!channel) {
+          return res.notFound('Channel not found');
+        }
+
         // TODO which broadcaster is best as root?
         var findOnePeer = Peer.findOne({ channel: channelId, broadcaster: true }).populate('connections');
         return [channel, findOnePeer];
       })
       .spread(function(channel, broadcaster) {
         if (!broadcaster) {
-          return Promise.reject(new Error('No broadcasters found'));
+          return res.notFound('No broadcasters found');
         }
 
         return Promise.all([channel, broadcaster, broadcaster.buildTree()]);
       })
       .spread(function(channel, peer, treeJSON) {
-        console.log('sending treeJSON', treeJSON);
-
         if (req.wantsJSON || req.isSocket) {
           return res.json(treeJSON, 200);
         } else {
@@ -174,9 +175,11 @@ var ChannelController = {
           });
         }
       })
-      .error(function(e) {
-        sails.log.error('Channel#treeCreate: Internal server error', e);
-        return res.serverError('Internal server error', e);
+      .error(function(err) {
+        if (err.code === 'E_VALIDATION')
+          return res.badRequest(err, 'back');
+        else
+          return res.serverError(err);
       });
   }
 

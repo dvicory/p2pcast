@@ -5,13 +5,12 @@
  * @docs        :: http://sailsjs.org/#!documentation/controllers
  */
 
- var Promise = require('bluebird');
- var bcrypt = Promise.promisifyAll(require('bcrypt-nodejs'));
+var _ = require('lodash');
+var Promise = require('bluebird');
+var bcrypt = Promise.promisifyAll(require('bcrypt-nodejs'));
 
- var Auth = {
+var AuthController = {
   login: function(req, res) {
-    Promise.promisifyAll(User);
-
     var email = req.param('email');
     var challenge = req.param('password');
 
@@ -29,9 +28,11 @@
             res.redirect('back');
           } else {
             // handle invalid password
+            // if they're already logged in (?!), log them out
             if (req.session.user) {
               req.session.user = null;
               delete req.session.user;
+
               req.session.save();
             }
 
@@ -60,4 +61,4 @@
   }
 };
 
-module.exports = Auth;
+module.exports = AuthController;

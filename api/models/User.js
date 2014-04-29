@@ -13,17 +13,23 @@ var hashPasswordHook = function hashPassword(attrs, next, isUpdate) {
   // this is an update but it didn't contain a new password
   // we shouldn't hash undefined or something terrible...
   if (isUpdate && !_.isString(attrs.password)) {
-    next();
+    return next();
   }
 
-  bcrypt.genSaltAsync(10).then(function(salt) {
-    return bcrypt.hashAsync(attrs.password, salt, null);
-  }).then(function(hash) {
-    attrs.password = hash;
-  }).then(next).error(function(e) {
-    sails.log.error('could not hash password', e);
-    next(e);
-  });
+  bcrypt.genSaltAsync(10)
+    .then(function(salt) {
+      return bcrypt.hashAsync(attrs.password, salt, null);
+    })
+    .then(function(hash) {
+      attrs.password = hash;
+      return next();
+    })
+    .error(function(err) {
+      return next(err);
+    })
+    .catch(function(err) {
+      return next(err);
+    });
 };
 
 var User = {

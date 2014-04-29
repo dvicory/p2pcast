@@ -7,7 +7,7 @@
  *   '/trial/signup'
  * );
  * 
- * @param {Array|Object|String} validationErrors
+ * @param {Array|Object|String} errors
  *      optional errors
  *      usually an array of validation errors from the ORM
  *
@@ -18,29 +18,9 @@
  *      since if this was triggered from an AJAX or socket request, JSON should be sent instead.
  */
 
-module.exports = function badRequest(validationErrors, redirectTo) {
-  
-  // Get access to `req`, `res`, `sails`
+module.exports = function badRequest(errors, redirectTo) {
   var req = this.req;
   var res = this.res;
-  var sails = req._sails;
-
-  var statusCode = 400;
-
-  var result = {
-    status: statusCode
-  };
-
-  // Optional validationErrors object
-  if (validationErrors) {
-    result.validationErrors = validationErrors;
-  }
-
-  // For requesters expecting JSON, everything works like you would expect-- a simple JSON response
-  // indicating the 400: Bad Request status with relevant information will be returned. 
-  if (req.wantsJSON) {
-    return res.json(result, result.status);
-  }
 
   // For traditional (not-AJAX) web forms, this middleware follows best-practices
   // for when a user submits invalid form data:
@@ -49,15 +29,14 @@ module.exports = function badRequest(validationErrors, redirectTo) {
   // ii.  Then the  user is redirected back to `redirectTo`, i.e. the URL where the bad request originated.
   // iii. There, the controller and/or view might use the flash `errors` to either display a message or highlight
   //      the invalid HTML form fields.
-  if (redirectTo) {
+  if (!req.wantsJSON && redirectTo) {
 
     // Set flash message called `errors` (one-time-use in session)
-    req.flash('errors', validationErrors);
+    req.flash('errors', errors);
 
     // then redirect back to the `redirectTo` URL
     return res.redirect(redirectTo);
   }
-
 
   // Depending on your app's needs, you may choose to look at the Referer header here 
   // and redirect back. Please do so at your own risk!
@@ -65,5 +44,5 @@ module.exports = function badRequest(validationErrors, redirectTo) {
   // It's safest to provide a 'redirectTo' URL and redirect there directly.
 
   // If `redirectTo` was not specified, just respond w/ JSON
-  return res.json(result, result.status);
+  return res.json(errors, 400);
 };

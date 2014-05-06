@@ -46,63 +46,20 @@ module.exports.sockets = {
 
     Peer.findBySocketId(socketId)
       .populate('connections')
-      .exec(function(err, peers) {
-	if (err) {
-	  sails.log.error('#onDisconnect findBySocketId', err);
-	  return;
-	}
+      .then(function(peers) {
+        _.forEach(peers, function(peer) {
+          var previousPeer = peer.toObject();
 
-	_.each(peers, function(peer) {
-	  var previousPeer = peer.toObject();
+          sails.log.info('sockets#onDisconnect: destroying peer', peer);
 
-	  /*
-	  _.each(peer.outbound, function(outbound) {
-	    peer.outbound.remove(outbound.id);
-	  });
-
-
-	  Peer.publishUpdate()
-	  */
-
-	  Peer.destroy({ id: peer.id })
-	    .then(function() {
-	      Peer.publishDestroy(peer.id, null, { previous: previousPeer });
-	    });
-
-	  return true;
-
-	  peer.destroy(function(err) {
-	    if (err) {
-	      sails.log.error('#onDisconnect: Can not destroy peer', peer.id, 'with error', err);
-	      return true;
-	    }
-
-	    sails.log.info('#onDisconnect: Destroyed peer', peer.id);
-	    /*
-	     peer.parent.destroy(function(err) {
-	     if (err) {
-             sails.log.error("#onDisconnect: Can not destroy peer's parent", peer.id, 'with error', err);
-             return true;
-	     }
-
-	     sails.log.verbose("#onDisconnect: Destroyed peer's parent", peer.parent.id);
-	     });
-
-	     _.each(peer.children, function(child) {
-	     child.destroy(function(err) {
-             if (err) {
-	     sails.log.error("#onDisconnect: Can not destroy peer's child", peer.id, 'with error', err);
-	     return true;
-             }
-
-             sails.log.verbose("#onDisconnect: Destroyed peer's child", child.id);
-	     });
-	     });
-	     */
-	  });
-
-	  //Peer.publishDestroy(peer.id, socket, { previous: previousPeer });
-	});
+          Peer.destroy({ id: peer.id })
+            .then(function() {
+              Peer.publishDestroy(peer.id, null, { previous: previousPeer });
+            });
+        });
+      })
+      .error(function(err) {
+        sails.log.error('sockets#onDisconnect: could not destroy peer', err);
       });
   },
 

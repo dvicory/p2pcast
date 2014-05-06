@@ -53,12 +53,12 @@ var PeerConnection = {
   },
 
   afterUpdate: function afterPeerConnectionUpdate(values, cb) {
-    sails.log.info('PeerConnection#afterUpdate: values', values);
+    sails.log.verbose('PeerConnection#afterUpdate: values', values);
     cb();
   },
 
   afterDestroy: function afterPeerConnectionDestroy(values, cb) {
-    sails.log.info('PeerConnection#afterDestroy: values', values);
+    sails.log.verbose('PeerConnection#afterDestroy: values', values);
     cb();
   },
 
@@ -66,11 +66,11 @@ var PeerConnection = {
   // this can happen when either the socket associated with the peer is destroyed
   // or for some reason they are removed from this peer connection
   afterPublishRemove: function afterPeerConnectionPublishRemove(id, alias, idRemoved, req) {
-    sails.log.info('PeerConnection#afterPublishRemove: id', id, /*'attribute', attribute,*/ 'alias', alias/*, 'req', req*/);
+    sails.log.verbose('PeerConnection#afterPublishRemove: id', id, /*'attribute', attribute,*/ 'alias', alias/*, 'req', req*/);
   },
 
   afterPublishDestroy: function afterPeerConnectionPublishDestroy(id, req, options) {
-    sails.log.info('PeerConnection#afterPublishDestroy: id', id, /*'attribute', attribute,*/ 'options', options/*, 'req', req*/);
+    sails.log.verbose('PeerConnection#afterPublishDestroy: id', id, /*'attribute', attribute,*/ 'options', options/*, 'req', req*/);
   }
 };
 

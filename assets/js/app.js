@@ -6,6 +6,8 @@ var RTCConnection = require('rtcpeerconnection');
 var getUserMedia = require('getusermedia');
 var getUserMediaAsync = Promise.promisify(getUserMedia);
 
+var PeerConnectionManager = require('./PeerConnectionManager');
+
 global._enableFirehose = false;
 
 // start connecting immediately
@@ -66,46 +68,6 @@ function getUpstream() {
 
   return _.shuffle(_.where(_pcManager.getRemotes(), { 'state': 'established' }))[0].stream;
 }
-
-function PeerConnectionManager() {
-  // all peer connections
-  this._peerconns = Object.create(null);
-}
-
-PeerConnectionManager.prototype.get = function get(peerConn) {
-  var id = _.isObject(peerConn) ? peerConn.id : peerConn;
-  return this._peerconns[id];
-};
-
-PeerConnectionManager.prototype.exists = function exists(peerConn) {
-  return _.isObject(this.get(peerConn));
-};
-
-PeerConnectionManager.prototype.set = function set(peerConn) {
-  if (!this.exists(peerConn)) {
-    this._peerconns[peerConn.id] = peerConn;
-  }
-
-  return this.get(peerConn);
-};
-
-PeerConnection.prototype.remove = function remove(peerConn) {
-  if (this.exists(peerConn)) {
-    var id = _.isObject(peerConn) ? peerConn.id : peerConn;
-    this._peerconns[id] = null;
-    delete this._peerconns[id];
-  }
-
-  return this.get(peerConn);
-};
-
-PeerConnectionManager.prototype.getChildren = PeerConnectionManager.prototype.getLocals = function getRemotes() {
-  return _.where(this._peerconns, { type: 'initiator' });
-};
-
-PeerConnectionManager.prototype.getParents = PeerConnectionManager.prototype.getRemotes = function getRemotes() {
-  return _.where(this._peerconns, { type: 'receiver' });
-};
 
 function PeerConnection(socket, init) {
   // underlying webrtc peer connection

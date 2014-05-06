@@ -85,7 +85,8 @@ function PeerConnectionManager() {
 }
 
 PeerConnectionManager.prototype.get = function get(peerConn) {
-  return this._peerconns[peerConn.id];
+  var id = _.isObject(peerConn) ? peerConn.id : peerConn;
+  return this._peerconns[id];
 };
 
 PeerConnectionManager.prototype.exists = function exists(peerConn) {
@@ -625,7 +626,7 @@ PeerConnection.prototype.sendAnswer = function sendAnswer(answer) {
 function addRemotePeerConnection(addedPeerConn) {
   if (_pcManager.exists(addedPeerConn)) return;
 
-  var newPc = PeerConnection.createFromRemote(socket, _pcManager, addedPeerConn.addedId);
+  var newPc = PeerConnection.createFromRemote(socket, _pcManager, addedPeerConn);
   newPc.createConnection();
 
   var upstream = getUpstream();
@@ -636,8 +637,10 @@ function addRemotePeerConnection(addedPeerConn) {
 function removeRemotePeerConnection(removedPeerConn) {
   if (!_pcManager.exists(removedPeerConn)) return;
 
-  var pc = _pcManager.get(removedPeerConn);
-  pc.destroy(_pcManager);
+  if (_pcManager.exists(removedPeerConn)) {
+    var pc = _pcManager.get(removedPeerConn);
+    pc.destroy(_pcManager);
+  }
 }
 
 function setupCallbacks() {
@@ -653,14 +656,14 @@ function setupCallbacks() {
     case 'addedTo':
       if (message.id === _localPeerModel.id
 	  && message.attribute === 'connections') {
-	addRemotePeerConnection(message);
+	addRemotePeerConnection(message.addedId);
       }
       break;
 
-    case 'removeFrom':
+    case 'removedFrom':
       if (message.id === _localPeerModel.id
           && message.attribute === 'connections') {
-	removeRemotePeerConnection(message);
+	removeRemotePeerConnection(message.removedId);
       }
       break;
 

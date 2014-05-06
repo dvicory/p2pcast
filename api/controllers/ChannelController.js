@@ -162,7 +162,7 @@ var ChannelController = {
           return res.notFound('No broadcasters found');
         }
 
-        return Promise.all([channel, broadcaster, broadcaster.buildTree()]);
+        return Promise.join(channel, broadcaster, broadcaster.buildTree());
       })
       .spread(function(channel, peer, treeJSON) {
         if (req.wantsJSON || req.isSocket) {

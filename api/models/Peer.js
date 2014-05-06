@@ -59,55 +59,73 @@ var Peer = {
       return _.filter(this.connections, _.extend({ initiator: this.id }, connectionCriteria));
     },
 
-    buildTree: function buildTree(connectionCriteria) {
+    buildTree: function buildTree(connectionCriteria, transform) {
+      // someone only passed in a transform
+      // make all right with the world
+      if (_.isFunction(connectionCriteria)) {
+        transform = connectionCriteria;
+        connectionCriteria = void 0;
+      }
+
       connectionCriteria = connectionCriteria || { state: 'established' };
 
       // this is the root
-      var root = this;
+      var root = this.toObject();
+      var rootChannelId = _.isObject(root.channel) ? root.channel.id : root.channel;
+      root._seen = true;
+      root.children = [];
 
-      // Q is the queue to build the tree from
       var Q = [root];
-
-      // V is the set that has already been seen
       var V = Object.create(null);
       V[root.id] = true;
 
-      return Promise.promiseWhile(function() {
-        return Q.length !== 0;
-      }, function() {
-        // fairly standard BFS-based tree building
+      // get all peers in this channel
+      return sails.models.peer.find()
+        .populate('connections')
+        .then(function(peers) {
+          // TODO filter out peers not in this channel
+          // also convert to object, will maybe save lookup time when building tree
 
-        // get the current peer (parent)
-        var peer = Q.shift();
-
-        return Peer.findChildrenConnectionsByPeerId(peer.id, connectionCriteria)
-          .map(function(peerConn) {
-            // retrieves the child peer given a peer connection
-            return PeerConnection.getOppositePeer(peerConn, peer);
-          })
-          .then(function(children) {
-            _.forEach(children, function(child) {
-              // TODO use ES6 sets?
-              if (!V[child.id]) {
-                sails.log.silly('adding child', child, 'to parent', peer);
-
-                // is seen and also needs to be visited later
-                V[child.id] = true;
-                Q.push(child);
-
-                // create children array if necessary
-                if (!_.isArray(peer.children)) {
-                  peer.children = [];
-                }
-
-                peer.children.push(child);
-              }
-            });
+          // also TODO, use kruskal's with peer connections - will allow disconnected trees
+          // also mess with _seen
+          return _.map(peers, function(peer) {
+            peer = peer.toObject();
+            peer._seen = false;
+            peer.children = [];
+            return peer;
           });
-      })
-      .then(function() {
-        sails.log.verbose('Peer#buildTree: built tree', root);
-        return root;
+        })
+        .then(function(peers) {
+          while (Q.length !== 0) {
+            var parent = Q.shift();
+
+            sails.log.silly('Peer#buildTree: got parent', parent);
+
+            var children = _.filter(peers, function(peer) {
+              sails.log.silly('Peer#buildTree checking peer', peer, 'for childship of parent');
+
+              var peerChannelId = _.isObject(peer.channel) ? peer.channel.id : peer.channel;
+
+              if (peer._seen || peer.id === root.id || peerChannelId !== rootChannelId) return false;
+
+              if (_.some(peer.connections, _.extend({ endpoint: parent.id }, connectionCriteria))) {
+                peer._seen = true;
+                return true;
+              }
+
+              return false;
+            });
+
+            _.forEach(children, function(child) {
+              sails.log.silly('Peer#buildTree: adding child to parent');
+              Q.push(child);
+              parent.children.push(child);
+            });
+          }
+        })
+        .then(function() {
+          sails.log.verbose('Peer#buildTree: built tree', root);
+          return root;
       });
     }
 

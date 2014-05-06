@@ -24,6 +24,10 @@ module.exports.bootstrap = function (cb) {
     return deferred.promise;
   };
 
+  require('waterline/lib/waterline/query/deferred').prototype.fail = function(cb) {
+    return this.toPromise().error(cb);
+  };
+
   // https://github.com/petkaantonov/bluebird/blob/master/API.md#filterfunction-filterer---promise
   Promise.prototype.settledWithFulfill = function settledWithFulfill() {
     return this.settle()

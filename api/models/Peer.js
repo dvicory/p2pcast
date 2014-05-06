@@ -6,6 +6,7 @@
  */
 
 var _ = require('lodash');
+var t = require('t');
 var Promise = require('bluebird');
 
 var Peer = {
@@ -126,9 +127,35 @@ var Peer = {
         .then(function() {
           sails.log.verbose('Peer#buildTree: built tree', root);
           return root;
-      });
-    }
+        });
+    },
 
+    chooseUpstream: function chooseUpstream(root) {
+      // given a root peer in a tree, let's figure out which peer to connect to
+      // currently a very simple algorithm - attempt to fill each peer up with two children
+
+      var self = this;
+
+      // we'll make up a list of candidates
+      var candidates = [];
+
+      // do a breadth-first search to find ourselves a spot
+      t.bfs(root, function(node, par) {
+        console.info('chooseUpstream checking', node);
+        if (self.id !== node.id && node.children.length <= 1) {
+          sails.log.silly('Peer#chooseUpstream: found potential upstream', node);
+          candidates.push(node);
+        }
+      });
+
+      // we'll just choose some random candidate for now
+      //var candidate = _.shuffle(candidates)[0];
+      var candidate = candidates[0];
+
+      sails.log.info('Peer#chooseUpstream: chose', candidate, 'as the upstream for', this);
+
+      return candidate;
+    }
   },
 
   findConnectionsByPeerId: function findConnectionsByPeerId(peerId, connectionCriteria) {

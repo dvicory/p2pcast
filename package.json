@@ -6,8 +6,8 @@
   "keywords": [],
   "dependencies": {
     "sails": "~0.10.0-rc5",
-    "waterline": "git://github.com/balderdashy/waterline.git#0.10.0-rc10",
-    "sails.io.js": "git://github.com/balderdashy/sails.io.js.git#v0.10.0-rc2",
+    "waterline": "~0.10.0-rc11",
+    "sails.io.js": "~0.10.0-rc4",
     "sails-disk": "~0.10.0",
     "sails-memory": "~0.10.0",
     "rc": "~0.3.3",

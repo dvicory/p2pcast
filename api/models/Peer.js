@@ -180,27 +180,41 @@ var Peer = {
   },
 
   beforeDestroy: function beforePeerDestroy(criteria, cb) {
-    sails.log.info('Peer#beforeDestroy: criteria', criteria);
+    sails.log.verbose('Peer#beforeDestroy: criteria', criteria);
 
-    // TODO using criteria directly may not be the best thing to do
-    // get primaryKey from model?
-    PeerConnection.find(
-      { or: [
-        { initiator: criteria.where.id },
-        { endpoint: criteria.where.id }
-      ] })
-      .then(function(peerConns) {
-        peerConns = _.pluck(peerConns, 'id');
-
-        sails.log.silly('Peer#beforeDestroy: peerConns', peerConns);
-        return peerConns;
+    sails.models.peer.findOneById(criteria.where.id)
+      .populate('connections')
+      .then(function(peer) {
+        // build tree with one being destroyed as root
+        // any state connection will be associated with this tree
+        // prevents any issues with peers in the middle of connecting
+        return peer.buildTree({});
       })
-      .then(function(peerConns) {
-        return PeerConnection.destroy({ id: peerConns });
+      .then(function(root) {
+        // TODO use ES6 sets?
+        // also be more efficient about how connections are added - lots of duplicates (one at each level)
+        var connectionIds = [];
+        t.dfs(root, function(node) {
+          // add all connection ids associated with this peer
+          var ids = _.pluck(node.connections, 'id');
+          sails.log.verbose('Peer#beforeDestroy: adding peer connections', ids);
+          connectionIds.push.apply(connectionIds, ids);
+        });
+
+        // get rid of dupes
+        // TODO probably realllly slow
+        connectionIds = _.uniq(connectionIds);
+
+        // seems to be a bug where if you try to delete with an empty array, it empties the whole collection
+        // this is obviously a bad thing
+        if (connectionIds.length > 0) {
+          return PeerConnection.destroy({ id: connectionIds });
+        } else {
+          return connectionIds;
+        }
       })
       .then(function(destroyedPeerConns) {
-        // we have an array from both the map and then an array of destroyed peer connections within
-        sails.log.silly('Peer#beforeDestroy: destroyedPeerConns', destroyedPeerConns);
+        sails.log.info('Peer#beforeDestroy: destroyedPeerConns', destroyedPeerConns);
 
         _.forEach(destroyedPeerConns, function(destroyedPeerConn) {
           PeerConnection.publishDestroy(destroyedPeerConn.id, null, { previous: destroyedPeerConn });
@@ -209,8 +223,8 @@ var Peer = {
       .error(function(err) {
         return cb(err);
       })
-      .catch(function(e) {
-        return cb(e);
+      .catch(function(err) {
+        return cb(err);
       })
       .finally(function() {
         return cb();

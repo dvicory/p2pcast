@@ -8,6 +8,8 @@
  * http://sailsjs.org/#documentation
  */
 
+var _ = require('lodash');
+
 module.exports.sockets = {
 
   // This custom onConnect function will be run each time AFTER a new socket connects
@@ -15,8 +17,12 @@ module.exports.sockets = {
   // Keep in mind that Sails' RESTful simulation for sockets
   // mixes in socket.io events for your routes and blueprints automatically.
   onConnect: function(session, socket) {
+    if (!session || !socket) return;
+
     // let's store the socket id in the sessions
     var socketId = sails.sockets.id(socket);
+
+    if (!socketId) return;
 
     session.sockets = session.sockets || {};
     session.sockets[socketId] = socketId;
@@ -27,6 +33,8 @@ module.exports.sockets = {
 
   // This custom onDisconnect function will be run each time a socket disconnects
   onDisconnect: function(session, socket) {
+    if (!session || !socket) return;
+
     // we shall attempt to remove them as any peers
     // this will cause a cascade of publishing
     var socketId = sails.sockets.id(socket);

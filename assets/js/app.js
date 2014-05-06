@@ -5,18 +5,6 @@ var io = require('sails.io.js')(require('socket.io-client'));
 var RTCConnection = require('rtcpeerconnection');
 var getUserMedia = require('getusermedia');
 var getUserMediaAsync = Promise.promisify(getUserMedia);
-/*
-var getUserMediaAsync = function(constraints) {
-  return new Promise(function(resolve, reject) {
-    getUserMedia(constraints, function(err, stream) {
-      if (err) return reject(err);
-      return resolve(stream);
-    });
-  });
-};
-*/
-
-//Promise.longStackTraces();
 
 global._enableFirehose = false;
 
@@ -108,7 +96,7 @@ PeerConnection.prototype.remove = function remove(peerConn) {
   }
 
   return this.get(peerConn);
-}
+};
 
 PeerConnectionManager.prototype.getChildren = PeerConnectionManager.prototype.getLocals = function getRemotes() {
   return _.where(this._peerconns, { type: 'initiator' });
@@ -297,18 +285,18 @@ PeerConnection.prototype.setupConnectionBasics = function setupConnectionBasics(
     console.info('receiving offer (as ' + self.type + ')', message.data.payload, 'from peer connection', self.id);
     self.pc.handleOfferAsync(message.data.payload)
       .then(function() {
-	return self.pc.answerAsync(rtcConstraints);
+        return self.pc.answerAsync(rtcConstraints);
       })
       .then(function(answer) {
-	console.info('sending answer (as ' + self.type + ')', answer, 'to peer connection', self.id);
-	return self.sendAnswer(answer);
+        console.info('sending answer (as ' + self.type + ')', answer, 'to peer connection', self.id);
+        return self.sendAnswer(answer);
       })
       .then(function() {
-	return self.finalize();
+        return self.finalize();
       })
       .then(function(peerFinalization) {
-	self.state = peerFinalization.state;
-	console.info('setting state (as ' + self.type + ') to', self.state, 'for peer connection', self.id);
+        self.state = peerFinalization.state;
+        console.info('setting state (as ' + self.type + ') to', self.state, 'for peer connection', self.id);
       });
   });
 
@@ -316,11 +304,11 @@ PeerConnection.prototype.setupConnectionBasics = function setupConnectionBasics(
     console.info('receiving answer (as ' + self.type + ')', message.data.payload, 'from peer connection', self.id);
     self.pc.handleAnswerAsync(message.data.payload)
       .then(function() {
-	return self.finalize();
+        return self.finalize();
       })
       .then(function(peerFinalization) {
-	self.state = peerFinalization.state;
-	console.info('setting state (as ' + self.type + ') to', self.state, 'for peer connection', self.id);
+        self.state = peerFinalization.state;
+        console.info('setting state (as ' + self.type + ') to', self.state, 'for peer connection', self.id);
       });
   });
 
@@ -353,12 +341,12 @@ PeerConnection.prototype._processIceAsStable = function _processIceAsStable() {
 
     this._queuedIce = _.filter(this._queuedIce, function(candidate) {
       try {
-	console.info('processing queued ice (as ' + self.type + ')', candidate, 'from peer connection', self.id);
-	self.pc.processIce(candidate);
-	return false;
+        console.info('processing queued ice (as ' + self.type + ')', candidate, 'from peer connection', self.id);
+        self.pc.processIce(candidate);
+        return false;
       } catch(e) {
-	console.warn('unable to apply ice candidate', candidate, 'for peer connection', self.id);
-	return true;
+        console.warn('unable to apply ice candidate', candidate, 'for peer connection', self.id);
+        return true;
       }
     });
   }
@@ -397,127 +385,6 @@ PeerConnection.prototype._onAddChannel = function(newChannel) {
   };
 };
 
-/*
-PeerConnection.prototype.createRTCPeerConnection = function createRTCPeerConnection() {
-  return;
-  var self = this;
-
-  console.log('Creating RTCPeerConnection for id', this.id);
-
-  // create new peer connection and register ice callbacks
-  this.setup();
-
-  // register callback for incoming offer
-  this.receiveMessageAsync('offer')
-    .then(function(message) {
-      console.info('receiving offer', message.data.payload, 'from peer connection', self.id);
-      return self.pc.handleOfferAsync(message.data.payload);
-    })
-    .then(function() {
-      return self.pc.answerAsync(rtcConstraints);
-    })
-    .then(function(answer) {
-      console.info('sending answer', answer, 'to peer connection', self.id);
-      return self.sendAnswer(answer);
-    })
-    .then(function() {
-      console.info('finalizing peer connection', self.id);
-      return self.finalize();
-    })
-    .then(function(peerFinalization) {
-      self.state = peerFinalization.state;
-      return self;
-    })
-    .error(function(err) {
-      console.error('error with local initiated connection', self.id, err);
-    });
-
-  // register callback for incoming answer (3-way)
-  this.receiveMessageAsync('answer')
-    .then(function(message) {
-      console.info('handling answer', message.data.payload, 'for peer connection', self.id);
-      return self.pc.handleAnswerAsync(message.data.payload);
-    })
-    .error(function(err) {
-      console.error('error with local initiated connection', self.id, err);
-    });
-};
-*/
-
-/*
-PeerConnection.prototype.createRemoteRTCPeerConnection = function createRemoteRTCPeerConnection() {
-  return;
-  var self = this;
-
-  console.log('Creating (remote) RTCPeerConnection for id', this.id);
-
-  // create new peer connection and register ice callbacks
-  this.setup();
-
-  // register callback for incoming answer (3-way)
-  this.receiveMessage('answer', function(err, message) {
-    console.info('received answer', message.data.payload, 'from remote peer connection', self.id);
-    self.pc.handleAnswerAsync(message.data.payload)
-      .then(function() {
-	console.info('finalizing peer connection', self.id);
-	return self.finalize();
-      })
-      .then(function(peerFinalization) {
-	self.state = peerFinalization.state;
-	console.info('setting peer connection', self.id, 'to state', self.state);
-	return self;
-      })
-      .error(function(err) {
-	console.error('error with remote initiated connection', self.id, err);
-      });
-  });
-
-  this.pc.offerAsync(rtcConstraints)
-    .then(function(offer) {
-      console.info('sending offer', offer, 'to peer connection', self.id);
-      return self.sendOffer(offer);
-    })
-    .error(function(err) {
-      console.error('error with remote initiated connection', self.id, err);
-    });
-};
-*/
-
-/*
-PeerConnection.prototype.setup = function setup() {
-  return;
-  var self = this;
-
-  this.pc = new RTCConnection(rtcConfig, rtcConstraints);
-
-  // send ice when available
-  this.pc.on('ice', function(candidate) {
-    self.sendIce(candidate);
-  });
-
-  // process ice when available
-  this._iceHandler = this.receiveMessage('ice', function(err, message) {
-    self.pc.processIce(message.data.payload);
-  });
-
-  this.pc.on('negotiationNeeded', function() {
-    self.pc.offerAsync(rtcConstraints)
-      .then(function(offer) {
-        console.info('sending offer', offer, 'to peer connection', self.id);
-        return self.sendOffer(offer);
-      })
-      .error(function(err) {
-        console.error('error with remote initiated connection', self.id, err);
-      });
-  });
-
-  // debug
-  this.pc.on('*', function() {
-    console.log('pc on', arguments);
-  });
-};
-*/
-
 PeerConnection.prototype.finalize = function finalize() {
   var self = this;
 
@@ -529,31 +396,12 @@ PeerConnection.prototype.finalize = function finalize() {
 
       return resolve(peerFinalization);
     });
- });
+  });
 };
 
 PeerConnection.prototype.isInitiator = function isInitiator() {
   return this.type === 'initiator';
 };
-
-/*
-PeerConnection.prototype.receiveOneMessage = function receiveOneMessage(type) {
-  var self = this;
-
-  var handleMessage = function handleMessage(message, resolve, reject) {
-    if (message.verb === 'messaged' && message.id === self.id && message.data.type === type) {
-      socket.removeListener('peerconnection', handleMessage);
-      return resolve(message);
-    } else {
-      return null;
-    }
-  };
-
-  return new Promise(function(resolve, reject) {
-    socket.on('peerconnection', _.partialRight(handleMessage, resolve, reject));
-  });
-};
-*/
 
 PeerConnection.prototype.receiveOneMessage = function receiveOneMessage(type) {
   var self = this;
@@ -563,7 +411,7 @@ PeerConnection.prototype.receiveOneMessage = function receiveOneMessage(type) {
     socket.removeListener('peerconnection', cb);
     return resolve(message);
   };
-3
+  3
   return new Promise(function(resolve, reject) {
     cb = self.receiveMessage(type, _.partialRight(handleMessage, resolve, reject));
   });
@@ -596,7 +444,7 @@ PeerConnection.prototype.sendMessage = function sendMessage(type, payload) {
 
       return resolve(peerMessage);
     });
- });
+  });
 };
 
 PeerConnection.prototype.sendIce = function sendIce(candidate) {
@@ -655,15 +503,15 @@ function setupCallbacks() {
     switch (message.verb) {
     case 'addedTo':
       if (message.id === _localPeerModel.id
-	  && message.attribute === 'connections') {
-	addRemotePeerConnection(message.addedId);
+          && message.attribute === 'connections') {
+        addRemotePeerConnection(message.addedId);
       }
       break;
 
     case 'removedFrom':
       if (message.id === _localPeerModel.id
           && message.attribute === 'connections') {
-	removeRemotePeerConnection(message.removedId);
+        removeRemotePeerConnection(message.removedId);
       }
       break;
 
@@ -682,11 +530,11 @@ function setupCallbacks() {
       break;
 
     case 'updated':
-      if (_pcManager.exists(message) && message.data.state)
-	_pcManager.get(message).state = message.data.state;
+      if (_pcManager.exists(message) && message.data.state) {
+        _pcManager.get(message).state = message.data.state;
+        //handlePeerConnectionUpdated(message);
+      }
       break;
-      //handlePeerConnectionUpdated(message);
-      //break;
 
     default:
       console.info('unhandled peerconnection pubsub', message.verb);
@@ -700,11 +548,11 @@ function postPeer() {
   var step1 = function(channelId, isBroadcaster) {
     return new Promise(function(resolve, reject) {
       socket.post('/peer/create', { channel: channelId, broadcaster: isBroadcaster }, function gotPeerCreate(peerModel) {
-	if (!peerModel.id) {
-	  return reject(new Error('Could not create peer model'));
-	}
+        if (!peerModel.id) {
+          return reject(new Error('Could not create peer model'));
+        }
 
-	return resolve(peerModel);
+        return resolve(peerModel);
       });
     });
   };
@@ -718,8 +566,8 @@ function postPeer() {
     })
     .then(function(localPeerConn) {
       console.info('created local peer connection', localPeerConn.id,
-		   'in store?', _pcManager.exists(localPeerConn),
-		   'type?', localPeerConn.type);
+                   'in store?', _pcManager.exists(localPeerConn),
+                   'type?', localPeerConn.type);
       localPeerConn.createConnection();
     })
     .error(function(err) {
@@ -765,8 +613,8 @@ function addStream(stream, peerConn) {
 socket.on('connect', function socketConnected() {
   console.log(
     'Socket is now connected and globally accessible as `socket`.\n' +
-    'e.g. to send a GET request to Sails via Socket.io, try: \n' +
-    '`socket.get("/foo", function (response) { console.log(response); })`'
+      'e.g. to send a GET request to Sails via Socket.io, try: \n' +
+      '`socket.get("/foo", function (response) { console.log(response); })`'
   );
 
   // Sends a request to a built-in, development-only route which which
@@ -809,37 +657,37 @@ socket.on('connect', function socketConnected() {
   if (_isBroadcaster) {
     $('#addVideo').click(function() {
       createOrGetPeer(_channelId, _isBroadcaster)
-	.then(function(peerModel) {
-	  _localPeerModel = peerModel;
-	  return [peerModel, getUserMediaAsync(getUserMediaConfig)];
-	})
-	.spread(function(peerModel, stream) {
-	  peerModel.stream = stream;
-	  setUpstream(stream);
-	  $('#localVideo')[0].src = URL.createObjectURL(stream);
-	})
-	.error(function(err) {
-	  console.error(err);
-	});
+        .then(function(peerModel) {
+          _localPeerModel = peerModel;
+          return [peerModel, getUserMediaAsync(getUserMediaConfig)];
+        })
+        .spread(function(peerModel, stream) {
+          peerModel.stream = stream;
+          setUpstream(stream);
+          $('#localVideo')[0].src = URL.createObjectURL(stream);
+        })
+        .error(function(err) {
+          console.error(err);
+        });
     });
 
     return;
   } else {
     createOrGetPeer(_channelId, _isBroadcaster)
       .then(function(peerModel) {
-	_localPeerModel = peerModel;
+        _localPeerModel = peerModel;
         return createLocalPeerConnection(socket, _pcManager, peerModel);
       })
       .then(function(peerConn) {
-	peerConn.pc.on('addStream', function(event) {
-	  /*
-          _.forEach(_pcManager.getRemotes(), function(pc) {
-	    pc.pc.addStream(event.stream);
-          });
-	  */
-	  setUpstream(event.stream);
-	  $('#localVideo')[0].src = URL.createObjectURL(event.stream);
-	});
+        peerConn.pc.on('addStream', function(event) {
+          /*
+           _.forEach(_pcManager.getRemotes(), function(pc) {
+           pc.pc.addStream(event.stream);
+           });
+           */
+          setUpstream(event.stream);
+          $('#localVideo')[0].src = URL.createObjectURL(event.stream);
+        });
       });
   }
 

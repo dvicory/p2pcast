@@ -51,12 +51,12 @@ var Peer = {
       return upstreamConnections.length > 0;
     },
 
-    getChildrenConnections: function getChildren() {
-      return _.filter(this.connections, { endpoint: this.id });
+    getChildrenConnections: function getChildren(connectionCriteria) {
+      return _.filter(this.connections, _.extend({ endpoint: this.id }, connectionCriteria));
     },
 
-    getParentConnections: function getParents() {
-      return _.filter(this.connections, { initiator: this.id });
+    getParentConnections: function getParents(connectionCriteria) {
+      return _.filter(this.connections, _.extend({ initiator: this.id }, connectionCriteria));
     },
 
     buildTree: function buildTree(connectionCriteria) {

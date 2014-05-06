@@ -31,43 +31,37 @@ var PeerConnectionController = {
         });
     });
 
-    // second, we now have the initiator id
-    // we will then select a peer for them
     var getPeerMatch = function(initiatorPeer) {
       sails.log.silly('PeerConnectionController#create: getPeerMatch - initiatorPeer', initiatorPeer);
 
-      return Peer.find()
-        .where({ channel: initiatorPeer.channel.id })
+      // first, build a tree
+      // we'll find some broadcaster to be the root
+      return Peer.findOne({ channel: initiatorPeer.channel.id, broadcaster: true })
+        .populate('channel')
         .populate('connections')
-        .then(function(peers) {
-          if (!peers || peers.length === 0) {
-            return Promise.reject(res.notFound('No peer connections found'));
+        .then(function(broadcaster) {
+          if (!broadcaster) {
+            throw new Error('No broadcasters available to create peer connection');
           }
 
-          // only choose peers that can rebroadcast
-          // also, don't choose yourself
-          sails.log.verbose('PeerConnectionController#create: peer match initial candidates', peers);
+          // dirty hack to prevent validation errors later
+          initiatorPeer.channel = initiatorPeer.channel.id;
 
-          peers = _.filter(peers, function(peer) {
-            sails.log.silly('PeerConnectionController#create: filter - peer.id', peer.id,
-                            'canRebroadcast', peer.canRebroadcast(),
-                            'initiatorPeer.id', initiatorPeer.id);
-            return peer.canRebroadcast() && peer.id !== initiatorPeer.id;
-          });
-
-          sails.log.verbose('PeerConnectionController#create: peer match narrowed to', peers);
-
-          var receiverPeer = _.min(_.shuffle(peers), function(peer) {
-            return peer.getChildrenConnections().length;
-          });
-
-          if (receiverPeer === Infinity) {
-            return Promise.reject(res.notFound('No peer connections available'));
+          return broadcaster.buildTree();
+        })
+        .then(function(root) {
+          // now that we have a root, we can call chooseUpstream on initiator with the root passed in
+          return initiatorPeer.chooseUpstream(root);
+        })
+        .then(function(receiverMatch) {
+          if (!receiverMatch) {
+            throw new Error('No peer connection matches could be made');
           }
 
           sails.log.info('PeerConnectionController#create: candidate peer is', receiverMatch);
 
-          return [initiatorPeer, receiverPeer];
+          // found a match, but we need to get the "real" model to pass onto later steps
+          return [initiatorPeer, Peer.findOneById(receiverMatch.id).populate('connections')];
         });
     };
 

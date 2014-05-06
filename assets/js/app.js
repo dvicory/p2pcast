@@ -91,8 +91,9 @@ PeerConnectionManager.prototype.set = function set(peerConn) {
 
 PeerConnection.prototype.remove = function remove(peerConn) {
   if (this.exists(peerConn)) {
-    this._peerconns[peerConns.id] = null;
-    delete this._peerconns[peerConns.id];
+    var id = _.isObject(peerConn) ? peerConn.id : peerConn;
+    this._peerconns[id] = null;
+    delete this._peerconns[id];
   }
 
   return this.get(peerConn);

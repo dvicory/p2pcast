@@ -65,7 +65,7 @@ var PeerConnectionController = {
             return Promise.reject(res.notFound('No peer connections available'));
           }
 
-          sails.log.verbose('PeerConnectionController#create: candidate peer is', receiverPeer);
+          sails.log.info('PeerConnectionController#create: candidate peer is', receiverMatch);
 
           return [initiatorPeer, receiverPeer];
         });
@@ -75,11 +75,11 @@ var PeerConnectionController = {
     var hookupPeerConnection = function(initiatorPeer, receiverPeer) {
       sails.log.silly('PeerConnectionController#create: hookupPeerConnection - initiatorPeer', initiatorPeer, 'receiverPeer', receiverPeer);
 
-      var makePc = Promise.method(function(receiverPeer) {
+      var makePc = Promise.method(function(initiatorPeer, receiverPeer) {
         return PeerConnection.create({ state: 'reserved', endpoint: receiverPeer.id, initiator: initiatorPeer.id })
           .then(function(peerConn) {
             if (!peerConn) {
-              return Promise.reject(res.serverError('Unable to create peer connection'));
+              throw new Error('Unable to create peer connection');
             }
 
             // subscribe peer connection to socket
@@ -89,58 +89,53 @@ var PeerConnectionController = {
           });
       });
 
-      var saveInitiator = function(peerConn, initiatorPeer) {
-        initiatorPeer.connections.add(peerConn.id);
+      // TODO terrible terrible race condition possible
+      // it is possible to overwrite connections with an old value
+      var saveInitiator = function saveInitiator(peerConn, initiatorPeer) {
+        return new Promise(function(resolve, reject) {
+          initiatorPeer.connections.add(peerConn.id);
 
-        return initiatorPeer.save()
-          .then(function(upd) {
-            if (!upd) {
-              return Promise.reject(new Error('DB error, hit race condition updating peer', initiatorPeer.id, 'with outbound conn', peerConn.id));
-            }
+          return Promise.promisify(initiatorPeer.save, initiatorPeer)()
+            .then(function(upd) {
+              if (!upd) {
+                return reject(new Error('DB error, hit race condition updating peer', initiatorPeer.id, 'with outbound conn', peerConn.id));
+              }
 
-            return upd;
-          });
+              return resolve(upd);
+            });
+        });
       };
 
-      var saveReceiver = function(peerConn, receiverPeer) {
-        receiverPeer.connections.add(peerConn.id);
+      var saveReceiver = function saveReceiver(peerConn, receiverPeer) {
+        return new Promise(function(resolve, reject) {
+          receiverPeer.connections.add(peerConn.id);
 
-        return receiverPeer.save()
-          .then(function(upd) {
-            if (!upd) {
-              return Promise.reject(new Error('DB error, hit race condition updating peer', receiverPeer.id, 'with inbound conn', peerConn.id));
-            }
+          return Promise.promisify(receiverPeer.save, receiverPeer)()
+            .then(function(upd) {
+              if (!upd) {
+                return reject(new Error('DB error, hit race condition updating peer', receiverPeer.id, 'with inbound conn', peerConn.id));
+              }
 
-            return upd;
-          });
+              return resolve(upd);
+            });
+        });
       };
 
-      var peerConn;
-
-      return makePc(receiverPeer)
-        .then(function(pc) {
-          peerConn = pc;
-          return saveInitiator(peerConn, initiatorPeer);
+      return makePc(initiatorPeer, receiverPeer)
+        .then(function(peerConn) {
+          return Promise.join(peerConn, saveInitiator(peerConn, initiatorPeer), saveReceiver(peerConn, receiverPeer));
         })
-        .then(function(ip) {
-          initiatorPeer = ip;
-          return saveReceiver(peerConn, receiverPeer);
+        .error(function(err) {
+          sails.log.error('PeerConnectionController#create: makePc error', err);
         })
-        .then(function(rp) {
-          receiverPeer = rp;
-          return [peerConn, initiatorPeer, receiverPeer];
-        })
-        .error(function(e) {
-          sails.log.error('PeerConnectionController#create: makePc error', e);
-        })
-        .catch(function(e) {
-          sails.log.error('PeerConnectionController#create: makePc catch', e);
+        .catch(function(err) {
+          sails.log.error('PeerConnectionController#create: makePc catch', err);
         });
     };
 
-    var init = getPeerBySocketId(socketId).then(getPeerMatch).spread(hookupPeerConnection);
-
-    init
+    getPeerBySocketId(socketId)
+      .then(getPeerMatch)
+      .spread(hookupPeerConnection)
       .spread(function(peerConn, initiatorPeer, receiverPeer) {
         sails.log.info('PeerConnection#create: final - peerConn', peerConn,
                        'initiatorPeer', initiatorPeer,
@@ -162,16 +157,16 @@ var PeerConnectionController = {
         return res.json({ status: 200, connection: peerConn });
       })
       .error(function(err) {
-        sails.log.error('PeerConnectionController#create: DB error', e);
-        return res.serverError('DB error', e);
+        sails.log.error('PeerConnectionController#create: DB error', err);
+        return res.serverError('DB error', err);
       })
-      .catch(Error, function(e) {
-        sails.log.error('PeerConnectionController#create: Internal server error', e);
-        return res.serverError('Internal server error', e);
+      .catch(Error, function(err) {
+        sails.log.error('PeerConnectionController#create: Internal server error', err);
+        return res.serverError('Internal server error', err);
       })
-      .catch(function(e) {
-        sails.log.error('PeerConnectionController#create: Other internal server error', e);
-        return res.serverError('Other internal server error', e);
+      .catch(function(err) {
+        sails.log.error('PeerConnectionController#create: Other internal server error', err);
+        return res.serverError('Other internal server error', err);
       });
 
   },
@@ -212,8 +207,8 @@ var PeerConnectionController = {
             updated = updated[0];
 
             // publish update if needed
-            sails.log.info('PeerConnection#message: updateState for peer connection id', updated.id,
-                           'new state', updated.state, 'previous', peerConn);
+            sails.log.verbose('PeerConnection#message: updateState for peer connection id', updated.id,
+                              'new state', updated.state, 'previous', peerConn);
 
             PeerConnection.publishUpdate(updated.id, { state: updated.state }, null, { previous: peerConn });
 
@@ -333,7 +328,7 @@ var PeerConnectionController = {
 
     // update reserved state to connecting state as required
     var updateState = Promise.method(function(peerConn) {
-      sails.log.info('PeerConnection#finalize: updateState - peerConn', peerConn);
+      sails.log.silly('PeerConnection#finalize: updateState - peerConn', peerConn);
 
       if (peerConn.state !== 'established') {
         var newState = 'established';
@@ -347,8 +342,8 @@ var PeerConnectionController = {
           throw new Error('Neither the receiver or initiator peer were responsible for finalizing the peer connection');
         }
 
-        sails.log.info('PeerConnection#finalize: updateState - updating peer connection', peerConn.id,
-                       'with new state', newState, 'from old state', peerConn.state);
+        sails.log.verbose('PeerConnection#finalize: updateState - updating peer connection', peerConn.id,
+                        'with new state', newState, 'from old state', peerConn.state);
 
         return PeerConnection.update({ id: peerConn.id }, { state: newState })
           .then(function(updated) {
@@ -359,11 +354,11 @@ var PeerConnectionController = {
             updated = updated[0];
 
             // publish update
-            sails.log.info('PeerConnection#finalize: updateState - publishing for peer connection id', updated.id, 'new state', updated.state, 'previous', peerConn);
+            sails.log.verbose('PeerConnection#finalize: updateState - publishing for peer connection id', updated.id, 'new state', updated.state, 'previous', peerConn);
 
             PeerConnection.publishUpdate(updated.id, { state: updated.state }, null, { previous: peerConn });
 
-            return peerConn;
+            return updated;
           });
       } else {
         // already in established state

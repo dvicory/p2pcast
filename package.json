@@ -34,6 +34,7 @@
     "deamdify": "~0.1.1",
     "deglobalify": "~0.2.0",
     "bluebird": "~1.2.4",
+    "t": "~0.5.1",
     "bcrypt-nodejs": "~0.0.3",
     "bcrypt": "~0.7.7",
     "lodash": "~2.4.1",

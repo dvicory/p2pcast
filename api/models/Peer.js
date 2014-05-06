@@ -175,7 +175,7 @@ var Peer = {
   },
 
   beforeUpdate: function beforePeerUpdate(values, cb) {
-    sails.log.info('Peer#beforeUpdate: values', values);
+    sails.log.verbose('Peer#beforeUpdate: values', values);
     cb();
   },
 

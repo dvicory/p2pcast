@@ -173,21 +173,21 @@ var Peer = {
   },
 
   afterUpdate: function afterPeerUpdate(values, cb) {
-    sails.log.info('Peer#afterUpdate: values', values);
+    sails.log.verbose('Peer#afterUpdate: values', values);
     cb();
   },
 
   afterDestroy: function afterPeerDestroy(values, cb) {
-    sails.log.info('Peer#afterDestroy: values', values);
+    sails.log.verbose('Peer#afterDestroy: values', values);
     cb();
   },
 
   afterPublishRemove: function afterPeerPublishRemove(id, alias, idRemoved, req) {
-    sails.log.info('Peer#afterPublishRemove: id', id, 'alias', alias, 'idRemoved', idRemoved/*, 'req', req*/);
+    sails.log.verbose('Peer#afterPublishRemove: id', id, 'alias', alias, 'idRemoved', idRemoved/*, 'req', req*/);
   },
 
   afterPublishDestroy: function afterPeerPublishDestroy(id, req, options) {
-    sails.log.info('Peer#afterPublishDestroy: id', id, /*'attribute', attribute,*/ 'options', options /*, 'req', req*/);
+    sails.log.verbose('Peer#afterPublishDestroy: id', id, /*'attribute', attribute,*/ 'options', options /*, 'req', req*/);
   }
 
 };

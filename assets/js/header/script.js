@@ -1,12 +1,8 @@
-//Toggle dropdown to show flash message if there was a problem with login
-if($('#flashLogin').text().length > 0){
-  $('#loginmenu').addClass('open');
-}
-
-//Toggle dropdown to show flash message if there was a problem with registering
-if($('#flashRegister').text().length > 0){
-  $('#registermenu').addClass('open');
-}
+/* ---- Javascript for header partial ---- */
+//
+$('#browse').click(function() {
+	$('#browse').addClass();
+});
 
 // Handle logout redirect
 $('#logout').click(function() {
@@ -17,3 +13,42 @@ $('#logout').click(function() {
     }
   );
 });
+
+// Open login modal dialog
+$('#openLoginModal').click(function() {
+	$('#loginModal').modal('show');
+	$('.form-group').removeClass('has-error');
+	$('.alert').addClass('hidden');
+	$('.modal-content').width(400);
+
+	$(':checkbox').on('click', function() {
+  		$(':checkbox').checkbox('toggle');
+	});
+});
+
+// Open register modal dialog
+$('#openRegisterModal').click(function() {
+  $('#registerModal').modal('show');
+  $('.form-group').removeClass('has-error');
+  $('.alert').addClass('hidden');
+  $('.modal-content').width(400);
+});
+
+// Open broadcast modal dialog
+$('#openBroadcastModal').click(function() {
+	$('#broadcastModal').modal('show');
+});
+
+// Toggle dropdown to show flash message if there was a problem with login
+if($('#flashLogin').text().length > 0){
+  $('#openLoginModal').trigger("click");
+  $('.form-group').addClass('has-error');
+  $('.alert').removeClass('hidden');
+}
+
+// Toggle dropdown to show flash message if there was a problem with registration
+if($('#flashRegister').text().length > 0){
+  $('#openRegisterModal').trigger("click");
+  $('.form-group').addClass('has-error');
+  $('.alert').removeClass('hidden');
+}

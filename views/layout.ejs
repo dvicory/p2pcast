@@ -32,22 +32,24 @@
     <!--STYLES-->
     <link rel="stylesheet" href="/styles/bootstrap-theme.min.css">
     <link rel="stylesheet" href="/styles/bootstrap.min.css">
+    <link rel="stylesheet" href="/styles/channel/style.css">
+    <link rel="stylesheet" href="/styles/demo.css">
     <link rel="stylesheet" href="/styles/flat-ui.css">
     <link rel="stylesheet" href="/styles/font-awesome.min.css">
+    <link rel="stylesheet" href="/styles/header/style.css">
+    <link rel="stylesheet" href="/styles/homepage/style.css">
     <link rel="stylesheet" href="/styles/importer.css">
-    <link rel="stylesheet" href="/styles/main.css">
     <link rel="stylesheet" href="/styles/simple-sidebar.css">
+    <link rel="stylesheet" href="/styles/user/style.css">
     <!--STYLES END-->
   </head>
 
   <body>
     <div class="container">
-      <div class="col-md-4">
         <%- partial('partials/header.ejs') %>
-      </div>
-      <div class="col-md-8">  
-        <%- body %>
-      </div>
+        <div style="padding-left: 120px;" fixed>
+          <%- body %>
+        </div>
     </div>
 
 
@@ -105,6 +107,13 @@
     <script src="/js/homepage/script.js"></script>
     <script src="/js/user/script.js"></script>
     <script src="/js/header/script.js"></script>
+    <script src="/js/flatui-checkbox.js"></script>
+    <script src="/js/bootstrap-switch.js"></script>
+    <script src="/js/bootstrap-select.js"></script>
+    <script src="/js/flatui-radio.js"></script>
+    <script src="/js/typeahead.js"></script>
+    <script src="/js/jquery.placeholder.js"></script>
+    <script src="/js/jquery.tagsinput.js"></script>
 
   </body>
 </html>

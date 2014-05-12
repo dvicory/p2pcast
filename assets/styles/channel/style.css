@@ -1,0 +1,8 @@
+/* Styles for /channel/show page */
+#localVideoContainer {
+	width:640px;
+	height:360px;
+	background-color:#ccc;
+	margin-bottom:10px;
+	overflow:hidden;
+}

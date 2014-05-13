@@ -34,3 +34,10 @@
 div .centered {
 	text-align: center;
 }
+
+div .jumbotron {
+	margin-right: auto;
+	margin-left: auto;
+	width: 80%;
+	height: 100%;
+}

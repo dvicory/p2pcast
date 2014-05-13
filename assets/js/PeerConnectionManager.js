@@ -5,39 +5,45 @@ function PeerConnectionManager() {
   this._peerconns = Object.create(null);
 }
 
-PeerConnectionManager.prototype.get = function get(peerConn) {
-  var id = _.isObject(peerConn) ? peerConn.id : peerConn;
-  return this._peerconns[id];
+PeerConnectionManager.prototype.get = function get(key) {
+  key = _.isObject(key) ? key.id : key;
+  return this._peerconns[key];
 };
 
-PeerConnectionManager.prototype.exists = function exists(peerConn) {
-  return _.isObject(this.get(peerConn));
+PeerConnectionManager.prototype.exists = function exists(key) {
+  return _.isObject(this.get(key));
 };
 
-PeerConnectionManager.prototype.set = function set(peerConn) {
+PeerConnectionManager.prototype.set = function set(key, peerConn) {
+  if (_.isUndefined(peerConn)) {
+    // set all rolled into one
+    peerConn = key;
+  }
+
   if (!this.exists(peerConn)) {
-    this._peerconns[peerConn.id] = peerConn;
+    key = _.isObject(key) ? key.id : key;
+    this._peerconns[key] = peerConn;
   }
 
   return this.get(peerConn);
 };
 
-PeerConnectionManager.prototype.remove = function remove(peerConn) {
-  if (this.exists(peerConn)) {
-    var id = _.isObject(peerConn) ? peerConn.id : peerConn;
-    this._peerconns[id] = null;
-    delete this._peerconns[id];
+PeerConnectionManager.prototype.remove = function remove(key) {
+  if (this.exists(key)) {
+    key = _.isObject(key) ? key.id : key;
+    this._peerconns[key] = null;
+    delete this._peerconns[key];
   }
 
-  return this.get(peerConn);
+  return this.get(key);
 };
 
 PeerConnectionManager.prototype.getChildren = PeerConnectionManager.prototype.getLocals = function getRemotes() {
-  return _.where(this._peerconns, { type: 'initiator' });
+  return _.where(this._peerconns, { type: 'receiver' });
 };
 
 PeerConnectionManager.prototype.getParents = PeerConnectionManager.prototype.getRemotes = function getRemotes() {
-  return _.where(this._peerconns, { type: 'receiver' });
+  return _.where(this._peerconns, { type: 'initiator' });
 };
 
 module.exports = PeerConnectionManager;

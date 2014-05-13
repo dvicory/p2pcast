@@ -1,42 +1,35 @@
 <div class="row">
   <!-- Flash message -->
   <% if( !_.isUndefined(req.session.flash) && !_.isUndefined(req.session.flash.msg)) { %>
-      <div class="alert alert-success flash">
-        <p class="lead"><%= req.flash('msg') %></p>
+      <div class="alert alert-success" id="flash">
+        <p class="lead"><strong><%- req.flash('msg') %></strong></p>
       </div>
   <% } %>
-
-  <% if( !_.isUndefined(req.session.flash) && !_.isUndefined(req.session.flash.errors)) { %>
-      <div class="alert alert-danger flash">
-        <p class="lead"><%= JSON.stringify(req.flash('errors')) %></p>
-      </div>
-  <% } %>
-
-  <div class="col-md-6">
+  <div class="col-md-5 col-md-push-1">
     <h2><%= req.session.user.name %></h2>
-    <p class="lead">Update Info: </p>
-    <form role="form" action="/user/update/<%= req.session.user.id %>" method="post">
-      <fieldset class='textbox' style="padding-top:10px; padding-bottom:10px;">
-        <div class="col-sm-6 form-group">
-          <label for="userInputName">Name: </label>
-          <input type="name" class="form-control" name="name" id="userInputName" placeholder="Enter name" required>
+    <p class="lead">Update Your Info</p>
+    <div class="login-form">
+      <form role="form" action="/user/update/<%= req.session.user.id %>" method="post">
+        <fieldset class='textbox' style="padding-top:10px; padding-bottom:10px;">
+            <label for="userInputName">Name: </label>
+            <input type="name" class="form-control" name="name" id="userInputName" placeholder="New Name" required>
 
-          <label for="userInputEmail">Email address: </label>
-          <input type="email" class="form-control" name="email" id="userInputEmail" placeholder="Enter email" required>
+            <label for="userInputEmail">Email address: </label>
+            <input type="email" class="form-control" name="email" id="userInputEmail" placeholder="New Email" required>
 
-          <label for="userInputPassword">New Password: </label>
-          <input type="password" class="form-control" name="password" id="userInputPassword" placeholder="Enter Password" required>
+            <label for="userInputPassword">New Password: </label>
+            <input type="password" class="form-control" name="password" id="userInputPassword" placeholder="New Password" required>
 
-          <label for="userInputPassword" id="userProfilePassword">Confirm Password: </label>
-          <input type="password" class="form-control"  placeholder="Confirm Password" required><br>
-          <button type="submit" class="btn btn-danger" id="userProfileUpdate">Save</button>
-        </div>
-      </fieldset>
-    </form>
+            <label for="userInputPassword" id="userProfilePassword">Confirm Password: </label>
+            <input type="password" class="form-control"  placeholder="Confirm Password" required><br>
+            <button type="submit" class="btn btn-danger" id="userProfileUpdate">Save</button>
+        </fieldset>
+      </form>
+    </div>
   </div><!-- User info update forms -->
 
-  <div class="col-md-6">
-    <h3>Your Channels: </h3>
+  <div class="col-md-5 col-md-push-1">
+    <h3>Your Channels</h3>
     <table class="table table-hover">
       <thead>
         <tr>
@@ -120,3 +113,4 @@
   </div>
 
 </div>
+

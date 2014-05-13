@@ -28,7 +28,6 @@
     "grunt-nodemon": "~0.2.1",
     "grunt-concurrent": "~0.5.0",
     "browserify": "~3.39.0",
-    "socket.io-client": "~0.9.16",
     "request": "~2.34.0",
     "deamdify": "~0.1.1",
     "deglobalify": "~0.2.0",

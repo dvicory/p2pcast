@@ -31,6 +31,7 @@
     "request": "~2.34.0",
     "deamdify": "~0.1.1",
     "deglobalify": "~0.2.0",
+    "events": "~1.0.1",
     "bluebird": "~1.2.4",
     "t": "~0.5.1",
     "bcrypt-nodejs": "~0.0.3",

@@ -59,6 +59,14 @@
 
 .sidebar-nav > .sidebar-brand a {
   color: #efefef;
+  text-shadow: 0 0 10px #000fff,
+               0 0 20px #000fff,
+               0 0 30px #000fff,
+               0 0 40px #0000de,
+               0 0 70px #0000de,
+               0 0 80px #0000de,
+               0 0 100px #0000de,
+               0 0 150px #0000de;
 }
 
 .sidebar-nav > .sidebar-brand a:hover {
@@ -66,14 +74,14 @@
   background: none;*/
   color: #00fffb;
   background: none;
-  text-shadow: 0 0 10px #fff,
-               0 0 20px #fff,
-               0 0 30px #fff,
-               0 0 40px #ff00de,
-               0 0 70px #ff00de,
-               0 0 80px #ff00de,
+  text-shadow: 0 0 10px #00ffff,
+               0 0 20px #00ffff,
+               0 0 30px #000fff,
+               0 0 40px #0000de,
+               0 0 70px #0000de,
+               0 0 80px #0000de,
                0 0 100px #ff00de,
-               0 0 150px #ff00de;
+               0 0 150px #ffffde;
 }
 
 .content-header {

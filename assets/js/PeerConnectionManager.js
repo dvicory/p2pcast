@@ -7,7 +7,7 @@ function PeerConnectionManager() {
 
 PeerConnectionManager.prototype.get = function get(peerConn) {
   var id = _.isObject(peerConn) ? peerConn.id : peerConn;
-  return this._peerconns[peerConn.id];
+  return this._peerconns[id];
 };
 
 PeerConnectionManager.prototype.exists = function exists(peerConn) {

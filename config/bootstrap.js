@@ -18,13 +18,13 @@ module.exports.bootstrap = function (cb) {
   });
 
   // let's be evil and replace waterline's toPromise with bluebird
-  require('waterline/lib/waterline/query/deferred').prototype.toPromise = function() {
+  require('sails/node_modules/waterline/lib/waterline/query/deferred').prototype.toPromise = function() {
     var deferred = Promise.defer();
     this.exec(deferred.callback);
     return deferred.promise;
   };
 
-  require('waterline/lib/waterline/query/deferred').prototype.fail = function(cb) {
+  require('sails/node_modules/waterline/lib/waterline/query/deferred').prototype.fail = function(cb) {
     return this.toPromise().error(cb);
   };
 

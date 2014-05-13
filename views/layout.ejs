@@ -45,11 +45,13 @@
   </head>
 
   <body>
-    <div class="container">
-        <%- partial('partials/header.ejs') %>
-        <div style="padding-left: 120px; position: absolute;" >
-          <%- body %>
-        </div>
+    <div id="wrapper">
+      <%- partial('partials/header.ejs') %>
+      <div id="page-content-wrapper">
+          <div class="container-fluid">
+            <%- body %>
+          </div>
+      </div>
     </div>
 
 

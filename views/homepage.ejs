@@ -1,45 +1,30 @@
-<div class="container" id="home_container">
-  <style>
-    body {
-      background: url('/images/background/crowd.jpg') no-repeat center fixed; 
-      -webkit-background-size: cover;
-      -moz-background-size: cover;
-      -o-background-size: cover;
-      background-size: cover;
-    } 
-  </style>
-  <div class="jumbotron" id="stream">
+ <style>
+  body {
+    background: url('/images/background/crowd.jpg') no-repeat center fixed;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+  }
+</style>
+<div class="jumbotron centered" id="stream">
 
-      <h2>Stream your live content!</h2>
-      <div class="row">
-        <div class="col-md-10">
-          <p class="lead">Share your lectures, concert, or games with as many as you'd like.</p>
-        </div>
-        <div class="col-md-2">
-          <% if ( typeof req.session.user !== 'undefined' ) { %>
-            <a id ="openBroadcastModal" class="btn btn-success btn-lg btn-sucess"  href="#"> Broadcast Now!</a>
-          <% } else { %>
-                <a id ="broadcaster" class="btn btn-success btn-lg btn-sucess"  href="#"> Broadcast Now!</a>
-            <% } %>
-          </form>
-        </div>
-      </div>
+  <h3>Stream your live content!</h3>
+  <p class="lead">Share your lectures, concert, games with as many as you'd like!</p>
 
+  <% if ( !_.isUndefined(req.session.user) ) { %>
+  <button id ="openBroadcastModal" class="btn btn-info btn-lg ">Broadcast Now!</button>
+  <% } else { %>
+  <button id="goToLogin" class="btn btn-info btn-lg" style="horizontal-align: middle;">Broadcast Now!</button>
+  <% } %>
 
-    
-    <h2>Browse All Live Channels</h2>
-    <div class="row">
-      <div class="col-md-10">
-        <p class="lead">Check out lectures, exciting concerts, games, etc. <br> with many other people! You don't even need to register!</p> 
-      </div>
-      <div class="col-md-2">
-        <span><form class="form-inline" role="form"><a class="btn btn-primary btn-lg btn-sucess" href="/channel">See More</a></form></span>
-      </div>
+  <h3>Browse all live channels!</h3>
+  <p class="lead">Check out lectures, concerts, games with many other people! <br>You don't even need to register!</p>
+  <span><form class="form-inline" role="form"><a class="btn btn-inverse btn-lg mrs" style="background-color: #98df;" href="/channel">See More!</a></form></span>
 
-    </div>
-
-    <!-- Channel preview panes --> 
-    <div class="row wide-gutter">
+  <!-- Channel preview panes -->
+    <!--
+      <div class="row wide-gutter">
       <div class="col-md-12">
         <ol class="list-inline channel-previews">
           <li class="col-md-2">...</li>
@@ -48,11 +33,9 @@
         </ol>
       </div>
     </div>
+  -->
 
-    <!-- render partial for broadcast modal -->
-    <%- partial('partials/broadcast.ejs') %>
+  <!-- render partial for broadcast modal -->
+  <%- partial('partials/broadcast.ejs') %>
 
-  </div>
 </div>
-
-

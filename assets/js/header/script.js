@@ -20,7 +20,7 @@ $('#openLoginModal').click(function() {
 	$('.form-group').removeClass('has-error');
 	$('.alert').addClass('hidden');
 	$('.modal-content').width(400);
-
+  
 	$(':checkbox').on('click', function() {
   		$(':checkbox').checkbox('toggle');
 	});
@@ -32,11 +32,6 @@ $('#openRegisterModal').click(function() {
   $('.form-group').removeClass('has-error');
   $('.alert').addClass('hidden');
   $('.modal-content').width(400);
-});
-
-// Open broadcast modal dialog
-$('#openBroadcastModal').click(function() {
-	$('#broadcastModal').modal('show');
 });
 
 // Toggle dropdown to show flash message if there was a problem with login

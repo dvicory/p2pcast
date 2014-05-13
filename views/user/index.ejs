@@ -5,7 +5,7 @@
         <p class="lead"><strong><%- req.flash('msg') %></strong></p>
       </div>
   <% } %>
-  <div class="col-md-6">
+  <div class="col-md-5 col-md-push-1">
     <h2><%= req.session.user.name %></h2>
     <p class="lead">Update Your Info</p>
     <div class="login-form">
@@ -28,7 +28,7 @@
     </div>
   </div><!-- User info update forms -->
 
-  <div class="col-md-6">
+  <div class="col-md-5 col-md-push-1">
     <h3>Your Channels</h3>
     <table class="table table-hover">
       <thead>

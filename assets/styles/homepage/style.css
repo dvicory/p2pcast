@@ -22,6 +22,7 @@
 
 #stream {
 	/*background: linear-gradient(rgba(255, 255, 255, 0.90), rgba(0, 0, 0, 0.75));*/
+	margin-top: 110px;
 	background: rgba(240,240,240,0.8);
 }
 
@@ -30,6 +31,6 @@
 	background: rgba(240,240,240,0.8);
 }
 
-div #home_container {
-	padding-top: 50px;
+div .centered {
+	text-align: center;
 }

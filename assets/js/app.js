@@ -11,8 +11,10 @@ var PeerConnection = require('./PeerConnection');
 global._enableFirehose = false;
 
 // start connecting immediately
-global.socket = io.connect();
+var socket = io.connect();
+global.socket = socket;
 
+// and promisify...
 Promise.promisifyAll(socket);
 
 const getUserMediaConfig = { video: true, audio: false };
@@ -30,6 +32,7 @@ var _localPeerModel = null;
 
 // stores all peer connections
 var _pcManager = new PeerConnectionManager();
+global._pcManager = _pcManager;
 
 var _upstream = null;
 
@@ -49,12 +52,15 @@ function getUpstream() {
 function addRemotePeerConnection(addedPeerConn) {
   if (_pcManager.exists(addedPeerConn)) return;
 
-  var newPc = PeerConnection.createFromRemote(socket, _pcManager, addedPeerConn);
-  newPc.createConnection();
+  PeerConnection.createRemote(socket, addedPeerConn)
+    .then(function(newPc) {
+      _pcManager.set(newPc);
+      newPc.startConnection();
 
-  var upstream = getUpstream();
-  console.info('got upstream', upstream, 'for remote peer connection', newPc.id);
-  newPc.pc.addStream(upstream);
+      var upstream = getUpstream();
+      console.info('got upstream', upstream, 'for remote peer connection', newPc.id);
+      newPc.pc.addStream(upstream);
+    });
 }
 
 function removeRemotePeerConnection(removedPeerConn) {
@@ -62,7 +68,7 @@ function removeRemotePeerConnection(removedPeerConn) {
 
   if (_pcManager.exists(removedPeerConn)) {
     var pc = _pcManager.get(removedPeerConn);
-    pc.destroy(_pcManager);
+    pc.destroy();
   }
 }
 
@@ -137,13 +143,13 @@ function postPeer() {
       setupCallbacks();
 
       _localPeerModel = peerModel;
-      return PeerConnection.createFromLocal(socket, _pcManager, { model: peerModel });
+      return PeerConnection.createLocal(socket, _pcManager, { model: peerModel });
     })
     .then(function(localPeerConn) {
       console.info('created local peer connection', localPeerConn.id,
                    'in store?', _pcManager.exists(localPeerConn),
                    'type?', localPeerConn.type);
-      localPeerConn.createConnection();
+      localPeerConn.startConnection();
     })
     .error(function(err) {
       console.error('postPeer error', err);
@@ -166,9 +172,10 @@ function createOrGetPeer(channelId, isBroadcaster) {
 }
 
 function createLocalPeerConnection(socket, manager, peerModel) {
-  return PeerConnection.createFromLocal(socket, manager, { model: peerModel })
+  return PeerConnection.createLocal(socket, { model: peerModel })
     .then(function(peerConn) {
-      peerConn.createConnection();
+      manager.set(peerConn);
+      peerConn.startConnection();
       return peerConn;
     });
 }

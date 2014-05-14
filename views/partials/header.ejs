@@ -5,13 +5,12 @@
       <li class="sidebar-brand"><a href="/"><p class="lead" id="logo">P2Pcast</p></a>
       </li>
       <li><a href="/" id="home">Home</a>
+      <li><a href="/channel" id="browse">Live Channels</a></li>
       <% if( typeof req.session.user != 'undefined') { %>
-        <li><a href="/user">Dashboard</a>
+        <li><a href="/user">User Profile</a>
         </li>
         <li><a href="#" id="logout">Sign Out</a></li>
       <% } %>
-      <li><a href="/channel" id="browse">Browse</a>
-      </li>
       <% if( typeof req.session.user === 'undefined') { %>
         <li><a href="#" id="openLoginModal">Login</a>
         </li>

@@ -142,7 +142,6 @@ var ChannelController = {
           if (!channel) {
             return res.notFound('Channel not found');
           }
-
           return channel;
         });
     });

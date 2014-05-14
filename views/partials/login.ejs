@@ -10,7 +10,7 @@
 
         <div class="login-form">
           <form role="form" action="/login" method="post">
-            <div class="form-group">
+            <div class="form-group" id="emailForm">
               <input type="text" class="form-control login-field" value="" placeholder="Email" name="email" id="email" required>
               <label class="login-field-icon fui-user" for="login-name"></label>
             </div>
@@ -42,7 +42,7 @@
                   <p id="flashLogin"><small><%= req.flash('errors') %></small></p>
             </div>
 
-            <input class="btn btn-primary btn-lg btn-block" value="Sign In" id="login" type="submit" />
+            <input class="btn btn-embossed btn-primary btn-lg btn-block" value="Sign In" id="login" type="submit" />
         </form>
       </div>
     </div>

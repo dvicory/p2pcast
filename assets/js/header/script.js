@@ -26,6 +26,18 @@ $('#openLoginModal').click(function() {
 	});
 });
 
+// Toggle dropdown to show flash message if there was a problem with login
+if($('#flashLogin').text().length > 0){
+  $('#openLoginModal').trigger("click");
+  $('.form-group').addClass('has-error');
+  $('.alert').removeClass('hidden');
+}
+
+// Focus on first input field on open
+$('#loginModal').on('shown.bs.modal', function () {
+    $('#email').focus();
+});
+
 // Open register modal dialog
 $('#openRegisterModal').click(function() {
   $('#registerModal').modal('show');
@@ -34,16 +46,20 @@ $('#openRegisterModal').click(function() {
   $('.modal-content').width(400);
 });
 
-// Toggle dropdown to show flash message if there was a problem with login
-if($('#flashLogin').text().length > 0){
-  $('#openLoginModal').trigger("click");
-  $('.form-group').addClass('has-error');
-  $('.alert').removeClass('hidden');
-}
-
 // Toggle dropdown to show flash message if there was a problem with registration
 if($('#flashRegister').text().length > 0){
   $('#openRegisterModal').trigger("click");
   $('.form-group').addClass('has-error');
   $('.alert').removeClass('hidden');
 }
+
+// Focus on first input field on open
+$('#registerModal').on('shown.bs.modal', function () {
+    $('#newName').focus();
+});
+
+
+
+
+
+

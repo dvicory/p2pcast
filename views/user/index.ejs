@@ -43,14 +43,14 @@
           <td style="vertical-align: middle;"><a href="/c/<%= channel.name %>"><%= channel.name %></a></td>
           <td>
             <div class="btn-group btn-group-sm pull-right">
-              <button class="btn btn-info modifyChannel" data-channel-id="<%= channel.id %>" data-channel-name="<%= channel.name %>" data-channel-description="<%= channel.description %>">
+              <button class="btn btn-info btn-embossed modifyChannel" data-channel-id="<%= channel.id %>" data-channel-name="<%= channel.name %>" data-channel-description="<%= channel.description %>">
                 <span class="glyphicon glyphicon-cog"></span>
                   Modify
               </button>
 
               <form class="btn-group btn-group-sm deleteForm" role="form" action="/channel/destroy" method="post">
                 <input type="hidden" name="id" value="<%= channel.id %>">
-                <button type="submit" class="btn btn-danger">
+                <button type="submit" class="btn btn-danger btn-embossed">
                   <span class="glyphicon glyphicon-trash"></span>
                     Delete
                 </button>
@@ -59,9 +59,30 @@
             </div>
           </td>
       </tr>
+      <tr>
+        <form class="form-horizontal" role="form" action="/channel/create" method="post">
+          <td>
+            <input type="text" class="form-control input-sm" id="name" name="name" placeholder="Enter channel name">
+          </td>
+          <td>
+            <div class="btn-group btn-group-sm pull-right">
+              <button type="submit" name="broadcaster" class="btn btn-primary btn-embossed btn-sm">Create</button>
+            </div>
+          </td>
+        </form>
+      </tr>
       <% }) %>
       <% } else { %>
-        <tr><td><p class="lead"><small>No Channels</small></p></td></tr>
+        <tr>
+            <form class="form-horizontal" role="form" action="/channel/create" method="post">
+                  <td><input type="text" class="form-control input-sm" id="name" name="name" placeholder="Enter channel name"></td>
+                  <td>
+                    <div class="btn-group btn-group-sm pull-right">
+                      <button type="submit" name="broadcaster" class="btn btn-primary btn-embossed btn-sm">Create</button>
+                    </div>
+                  </td>
+            </form>
+        </tr>
       <% } %>
     </table>
   </div><!-- Channel List -->

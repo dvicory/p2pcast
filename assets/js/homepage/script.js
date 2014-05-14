@@ -13,4 +13,9 @@ $(document).ready( function(){
     $('#loginModal').modal('hide');
     $('#openRegisterModal').click();
   });
+
+  $('#broadcastModal').on('shown.bs.modal', function () {
+    $('#name').focus();
+  });
+
 });

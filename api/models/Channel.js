@@ -5,6 +5,8 @@
  * @docs        :: http://sailsjs.org/#!documentation/models
  */
 
+var _ = require('lodash');
+
 var Channel = {
   attributes: {
     name: {
@@ -27,9 +29,13 @@ var Channel = {
 
     peers: {
       collection: 'peer',
-      via: 'channel'
-    }
+      via: 'id',
+      dominant: true
+    },
 
+    isLive: function isLive() {
+      return _.some(this.peers, 'broadcaster');
+    }
   }
 };
 

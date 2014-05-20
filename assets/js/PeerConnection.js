@@ -121,10 +121,14 @@ PeerConnection.prototype._create = function create() {
 PeerConnection.prototype.destroy = function destroy(reason) {
   var that = this;
 
+  // abandon events
+  this.pc.releaseGroup(this._group);
+
   // notify other peer
   this._peerSocket.emit('close', reason);
 
-  this.pc.releaseGroup(this._group);
+  // close underlying peer connection
+  this.pc.close();
 
   return new Promise(function(resolve, reject) {
     socket.post('/peerconnection/destroy', { id: that.id }, function gotPeerConnectionDestroy(peerConnection) {

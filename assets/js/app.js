@@ -25,7 +25,7 @@ var _setupCallbacks = false;
 
 var _channelId = null;
 var _isBroadcaster = false;
-var _isLive = false;
+var _isLive = undefined;
 
 // object of your local peer and peer connection from server
 var _localPeerModel = null;
@@ -72,9 +72,107 @@ function removeRemotePeerConnection(removedPeerConn) {
   }
 }
 
+function handleChannelMessage(data) {
+  if (data.type === 'status') {
+    console.info('got channel status', data);
+
+    // update number of peers
+    if (data.numPeers) $('#peers').text(data.numPeers);
+
+    // do we got live data?
+    if (_.has(data, 'live')) {
+      // if we were previously not live (like at start)
+      // or was offline, we should figure out how to deal with it
+      if (!_isLive) {
+        // so if we are now live, awesome
+        // we'll become a peer right away
+        if (data.live) {
+          createOrGetPeer(_channelId, false)
+            .then(function(peerModel) {
+              _localPeerModel = peerModel;
+              return createLocalPeerConnection(socket, _pcManager, peerModel);
+            })
+            .then(function(peerConn) {
+              peerConn.pc.on('addStream', function(event) {
+                setUpstream(event.stream);
+                $('#localVideo')[0].src = URL.createObjectURL(event.stream);
+              });
+            })
+            .error(function(err) {
+              console.error('error in bootstrapping', err);
+            })
+            .catch(function(err) {
+              console.error('throw in bootstrapping', err);
+            });
+        } else if (_isBroadcaster && !data.live) {
+          // so if we are not live and are a broadcaster, give the user a chance to become one
+          // we'll do this by disabling the addVideo button and handling a click
+          $('#addVideo').removeAttr('disabled');
+
+          $('#addVideo').one('click', function() {
+            getUserMediaAsync(getUserMediaConfig)
+              .then(function(stream) {
+                _isLive = true; // very important
+                return [createOrGetPeer(_channelId, _isBroadcaster), stream];
+              })
+              .spread(function(peerModel, stream) {
+                _localPeerModel = peerModel;
+                _localPeerModel.stream = stream;
+                setUpstream(stream);
+                $('#localVideo')[0].src = URL.createObjectURL(stream);
+              })
+              .error(function(err) {
+                console.error('error in bootstrapping', err);
+              })
+              .catch(function(err) {
+                console.error('throw in bootstrapping', err);
+              });
+          });
+        }
+      }
+
+      // update indicator
+      if (data.live) {
+        $('#liveness-indicator')
+          .text('live')
+          .removeClass('palette-asbestos')
+          .addClass('palette-alizarin');
+      } else {
+        $('#liveness-indicator')
+          .text('offline')
+          .removeClass('palette-alizarin')
+          .addClass('palette-asbestos');
+      }
+
+      // finally update our global live tracker
+      _isLive = data.live;
+    }
+  } else {
+    console.info('unknown channel message', data);
+  }
+}
+
 function setupCallbacks() {
   if (_setupCallbacks) return;
   else _setupCallbacks = true;
+
+  socket.post('/channel/subscribe', { id: _channelId }, function gotChannelSubscribe(resp) {
+    console.info('got channel subscription', resp);
+  });
+
+  socket.on('channel', function gotChannelPub(message) {
+    console.info('channel pubsub', message);
+
+    switch (message.verb) {
+    case 'messaged':
+      handleChannelMessage(message.data);
+      break;
+
+    default:
+      console.info('unhandled channel pubsub', message.verb);
+      break;
+    }
+  });
 
   socket.on('peer', function gotPeerPub(message) {
     console.info('peer pubsub', message);
@@ -227,50 +325,7 @@ socket.on('connect', function socketConnected() {
   // we're a broadcaster if this is here
   if ($('#addVideo').length) _isBroadcaster = true;
 
-  // are we live?
-  if ($('#liveness').data('status') === 'live') _isLive = true;
-  else _isLive = false;
-
   // if we're a broadcaster we're not interested in continuing at this point
   // we'll come back later to add video
-  // TODO can't open your own channel in multiple tabs
   setupCallbacks();
-
-  if (_isBroadcaster) {
-    $('#addVideo').click(function() {
-      createOrGetPeer(_channelId, _isBroadcaster)
-        .then(function(peerModel) {
-          _localPeerModel = peerModel;
-          return [peerModel, getUserMediaAsync(getUserMediaConfig)];
-        })
-        .spread(function(peerModel, stream) {
-          peerModel.stream = stream;
-          setUpstream(stream);
-          $('#localVideo')[0].src = URL.createObjectURL(stream);
-        })
-        .error(function(err) {
-          console.error(err);
-        });
-    });
-
-    return;
-  } else {
-    createOrGetPeer(_channelId, _isBroadcaster)
-      .then(function(peerModel) {
-        _localPeerModel = peerModel;
-        return createLocalPeerConnection(socket, _pcManager, peerModel);
-      })
-      .then(function(peerConn) {
-        peerConn.pc.on('addStream', function(event) {
-          /*
-           _.forEach(_pcManager.getRemotes(), function(pc) {
-           pc.pc.addStream(event.stream);
-           });
-           */
-          setUpstream(event.stream);
-          $('#localVideo')[0].src = URL.createObjectURL(event.stream);
-        });
-      });
-  }
-
 });

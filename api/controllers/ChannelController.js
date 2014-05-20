@@ -180,6 +180,34 @@ var ChannelController = {
         else
           return res.serverError(err);
       });
+  },
+
+  /*
+   * Subscribe to a specific channel for events on that channel
+   * These updates include viewer counts, new trees, etc
+   */
+  subscribe: function(req, res) {
+    if (!req.isSocket) {
+      return res.badRequest('Channel subscriptions only supported with sockets');
+    }
+
+    var channelId = req.param('id');
+    var context = req.param('context') || 'message'; // default context is message
+
+    Channel.findOneById(channelId)
+      .populate('peers')
+      .then(function(channel) {
+        if (!channel) {
+          return res.notFound('Channel not found');
+        }
+
+        Channel.subscribe(req.socket, channel, context);
+
+        // we'll bootstrap them with some info
+        Channel.message(channel, { type: 'status', live: channel.isLive(), numPeers: channel.peers.length });
+
+        return res.ok();
+      });
   }
 
 };

@@ -1,3 +1,7 @@
+<div class="row">
+  <div class="col-sm-12 channel-tree"></div>
+</div>
+
 <style>
 
 .node {
@@ -26,22 +30,19 @@
 
 <script>
 
-var treeData2 = <%- JSON.stringify(treeJSON) %>;
+var treeData = <%- JSON.stringify(treeJSON) %>;
 var channelID = <%- channel.id %>;
 
 drawTree();
 
-d3.select("body").style("background-color", d3.rgb(60,83,88))
+function drawTree() {
+  treeData.name = "broadcaster";
 
-function drawTree () {
+  console.log("tree data = ", treeData);
 
-  treeData2.name = "broadcaster";
-
-  console.log("tree data = ", treeData2);
-
-  var margin = {top: 20, right: 120, bottom: 20, left: 120},
-      width  = 2 * 960 - margin.right - margin.left,
-      height = 800 - margin.top - margin.bottom;
+  var margin = { top: 20, right: 120, bottom: 20, left: 120 },
+      width  = $(".channel-tree").width() - margin.right - margin.left,
+      height = 600 - margin.top - margin.bottom;
 
   var i = 0,
       duration = 750,
@@ -53,18 +54,24 @@ function drawTree () {
   var diagonal = d3.svg.diagonal()
     .projection(function(d) { return [d.y, d.x]; });
 
-  svg = d3.select("body").append("svg")
+  svg = d3.select(".channel-tree").append("svg")
       .style("overflow", "scroll")
       .attr("width", width + margin.right + margin.left)
       .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .append("svg:g")
+      .append("g")
+      .append("svg:g")
       .attr("class","drawarea")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    root = treeData2;
-    root.x0 = height / 2;
-    root.y0 = 0;
+  root = treeData;
+  root.x0 = height / 2;
+  root.y0 = 0;
+
+  var nodes = tree.nodes(root),
+    links = tree.links(nodes);
+
+  var node = svg.selectAll("g.node"),
+    link = svg.selectAll("path.link");
 
   function collapse(d) {
     if (d.children) {
@@ -74,31 +81,24 @@ function drawTree () {
     }
   }
 
-  // root.children.forEach(collapse);
   update(root);
 
   // Send request for new tree & redraw @ 5 sec intervals
-  var inter = setInterval(function() { 
-  
-    // remove old tree
-    d3.selectAll("svg").remove();
-    d3.selectAll("svg").transition()
-        .duration(7500);                    
-
+  var inter = setInterval(function() {
     socket.get('/channel/' + channelID + '/tree', function(updatedJSON) {
-
       console.log("Updated Json = ", updatedJSON);
-      treeData2 = updatedJSON;
-    })
-   
-    // draw new
-    drawTree();
-  }, 10000);
+      treeData = updatedJSON;
+      treeData.name = "broadcaster";
 
-  d3.select(self.frameElement).style("height", "800px");
+      root = treeData;
+      root.x0 = height / 2;
+      root.y0 = 0;
+
+      update(root);
+    });
+  }, 5000);
 
   function update(source) {
-
     // Compute the new tree layout.
     var nodes = tree.nodes(root).reverse(),
       links = tree.links(nodes);
@@ -106,7 +106,7 @@ function drawTree () {
     // Normalize for fixed-depth.
     nodes.forEach(function(d) { d.y = d.depth * 180; });
 
-    // Update the nodes…
+    // Update the nodes...
     var node = svg.selectAll("g.node")
       .data(nodes, function(d) { return d.id || (d.id = ++i); });
 
@@ -124,7 +124,7 @@ function drawTree () {
       .attr("x", function(d) { return d.children || d._children ? -10 : 10; })
       .attr("dy", ".35em")
       .attr("text-anchor", function(d) { return d.children || d._children ? "end" : "start"; })
-      .text(function(d) { return d.name; })
+      .text(function(d) { return d.name || d.id; })
       .style("fill-opacity", 1e-6);
 
     // Transition nodes to their new position.
@@ -151,7 +151,7 @@ function drawTree () {
     nodeExit.select("text")
       .style("fill-opacity", 1e-6);
 
-    // Update the links…
+    // Update the links...
     var link = svg.selectAll("path.link")
       .data(links, function(d) { return d.target.id; });
 
@@ -185,15 +185,16 @@ function drawTree () {
 
     d3.select("svg")
       .call(d3.behavior.zoom()
-        .scaleExtent([0.5, 5])
-        .on("zoom", zoom));
+      .scaleExtent([0.5, 5])
+      .on("zoom", zoom));
 
     node
       .exit()
-        .remove();
+      .remove();
+
     link
       .exit()
-        .remove();      
+      .remove();
   }
 
   // Toggle children on click.
@@ -205,6 +206,7 @@ function drawTree () {
       d.children = d._children;
       d._children = null;
     }
+
     update(d);
   }
 
@@ -222,11 +224,13 @@ function drawTree () {
       Math.max(Math.min(translation[0], rbound), lbound),
       Math.max(Math.min(translation[1], bbound), tbound)
     ];
+
     d3.select(".drawarea")
       .attr("transform", "translate(" + translation + ")" +
             " scale(" + scale + ")");
   }
 }
+
 </script>
 
 

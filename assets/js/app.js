@@ -46,7 +46,7 @@ function getUpstream() {
 
   console.info('SELECTING UPSTREAM', _pcManager.getRemotes());
 
-  return _.shuffle(_.where(_pcManager.getRemotes(), { 'state': 'established' }))[0].stream;
+  return _.shuffle(_.where(_pcManager.getParents(), { 'state': 'established' }))[0].stream;
 }
 
 function addRemotePeerConnection(addedPeerConn) {

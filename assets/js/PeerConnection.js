@@ -132,7 +132,8 @@ PeerConnection.prototype.destroy = function destroy(reason) {
 
   return new Promise(function(resolve, reject) {
     socket.post('/peerconnection/destroy', { id: that.id }, function gotPeerConnectionDestroy(peerConnection) {
-      if (peerConnection.status !== 200) {
+      // it's okay if it's not there to destroy
+      if (peerConnection.status !== 200 && peerConnection.status !== 404) {
         return reject(new Error('Could not destroy peer connection'));
       }
 

@@ -13,16 +13,30 @@ const PeerConnectionStates = [ 'reserved', 'connecting',
                                'init_established', 'recv_established',
                                'established' ];
 
-const rtcConfig = {
-  debug: false,
-  iceServers: [
-    { url: 'stun:stun.l.google.com:19302' },
-    { url: 'stun:stun1.l.google.com:19302' },
-    { url: 'stun:stun2.l.google.com:19302' },
-    { url: 'stun:stun3.l.google.com:19302' },
-    { url: 'stun:stun4.l.google.com:19302' }
-  ]
-};
+function getRTCConfig(cb) {
+  var config = {
+    debug: false,
+    iceServers: [
+      { url: 'stun:stun.l.google.com:19302' },
+      { url: 'stun:stun1.l.google.com:19302' },
+      { url: 'stun:stun2.l.google.com:19302' },
+      { url: 'stun:stun3.l.google.com:19302' },
+      { url: 'stun:stun4.l.google.com:19302' }
+    ]
+  };
+
+  if (_.isFunction(window.turnserversDotComAPI.iceServers)) {
+    window.turnserversDotComAPI.iceServers(function(data) {
+      Array.prototype.push.apply(config.iceServers, data);
+
+      setTimeout(cb, 1, null, config);
+    });
+  } else {
+    setTimeout(cb, 1, null, config);
+  }
+}
+
+var getRTCConfigAsync = Promise.promisify(getRTCConfig);
 
 const rtcConstraints = {
   mandatory: {
@@ -46,6 +60,8 @@ function PeerConnection(socket, init) {
   this._peerSocket = null;
 
   this._beenSetup = false;
+
+  this._rtcConfig = null;
 
   // reference to old state
   this._oldState = null;
@@ -79,7 +95,11 @@ PeerConnection.createLocal = function createLocal(socket, init) {
     state: 'reserved'
   }));
 
-  return newPc._create();
+  return Promise.join(newPc._create(), getRTCConfigAsync())
+    .spread(function(newPc, rtcConfig) {
+      newPc._rtcConfig = rtcConfig;
+      return newPc;
+    });
 };
 
 PeerConnection.createRemote = function createRemote(socket, id, init) {
@@ -92,7 +112,11 @@ PeerConnection.createRemote = function createRemote(socket, id, init) {
   newPc._group = 'pc-' + newPc.id;
   newPc._peerSocket = new PeerSocket(newPc._socket, newPc.id);
 
-  return Promise.cast(newPc);
+  return Promise.join(Promise.cast(newPc), getRTCConfigAsync())
+    .spread(function(newPc, rtcConfig) {
+      newPc._rtcConfig = rtcConfig;
+      return newPc;
+    });
 };
 
 PeerConnection.prototype._create = function create() {
@@ -160,7 +184,7 @@ PeerConnection.prototype.setupConnectionBasics = function setupConnectionBasics(
 
   var that = this;
 
-  this.pc = new RTCConnection(rtcConfig, rtcConstraints);
+  this.pc = new RTCConnection(this._rtcConfig, rtcConstraints);
 
   //this.pc.on('*', function(event, data) { console.debug('debug', event, data); });
 

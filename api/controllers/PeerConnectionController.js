@@ -260,7 +260,7 @@ var PeerConnectionController = {
         .populate('endpoint')
         .then(function(peerConn) {
           if (!peerConn) {
-            return Promise.reject(res.serverError('Can not destroy nonexistent peer connection'));
+            return Promise.reject(res.notFound('Can not destroy nonexistent peer connection'));
           }
 
           return peerConn;

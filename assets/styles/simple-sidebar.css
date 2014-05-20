@@ -96,15 +96,27 @@
   display: inline-block;
 }
 
-#menu-toggle {
+.sidebar-toggle {
   display: none;
+}
+
+.sidebar-toggle .navbar-toggle {
+  float: none; /* otherwise bootstrap/flat ui floats to right */
 }
 
 .inset {
   padding: 20px;
 }
 
-@media (max-width:767px) {
+@media (min-width: 767px) {
+
+.sidebar-toggle .navbar-toggle {
+  display: inherit; /* override bootstrap's hiding at 767px */
+}
+
+}
+
+@media (max-width: 1017px) {
 
 #wrapper {
   padding-left: 0;
@@ -114,19 +126,19 @@
   left: 0;
 }
 
-#wrapper.active {
+#wrapper.open {
   position: relative;
   left: 250px;
 }
 
-#wrapper.active #sidebar-wrapper {
+#wrapper.open #sidebar-wrapper {
   left: 250px;
   width: 250px;
   transition: all 0.4s ease 0s;
 }
 
-#menu-toggle {
-  display: inline-block;
+.sidebar-toggle {
+  display: block;
 }
 
 .inset {

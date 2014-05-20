@@ -185,6 +185,28 @@ var Peer = {
     sails.models.peer.findOneById(criteria.where.id)
       .populate('connections')
       .then(function(peer) {
+        // let's find what channel they were with so we can take care of that
+        // they need to removed from channel's peers and possibly get an update
+        return Promise.join(Channel.findOneById(peer.channel).populate('peers'), peer);
+      })
+      .spread(function(channel, peer) {
+        // wtf? everything's mostly fine... we'll just continue
+        if (!channel) return peer;
+
+        // remove peer from channel list of peers, if it's there (?!)
+        if (_.some(channel.peers, { id: peer.id })) {
+          channel.peers.remove(peer.id);
+        }
+
+        return Promise.join(Promise.promisify(channel.save, channel)(), peer);
+      })
+      .spread(function(channel, peer) {
+        // send a little status update out and continue on
+        Channel.message(channel, { type: 'status', live: channel.isLive(), numPeers: channel.peers.length });
+
+        return peer;
+      })
+      .then(function(peer) {
         // build tree with one being destroyed as root
         // any state connection will be associated with this tree
         // prevents any issues with peers in the middle of connecting

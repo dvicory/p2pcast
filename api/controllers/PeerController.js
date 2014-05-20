@@ -5,6 +5,7 @@
  * @docs        :: http://sailsjs.org/#!documentation/controllers
  */
 
+var _ = require('lodash');
 var Promise = require('bluebird');
 
 var PeerController = {
@@ -22,6 +23,7 @@ var PeerController = {
     var checkChannel = Promise.method(function(channelId) {
       return Channel.findOneById(channelId)
 	.populate('owner')
+        .populate('peers')
 	.then(function(channel) {
 	  if (!channel) {
 	    return Promise.reject(res.notFound('Can not be a peer for a nonexistent channel'));
@@ -59,27 +61,46 @@ var PeerController = {
 						peer.id, 'with broadcaster as', isBroadcaster));
 	      }
 
-	      return upd[0];
+	      return [channel, upd[0]];
 	    });
 	});
     });
 
-    checkChannel(channelId).spread(createPeer)
-      .then(function(peer) {
+    var addToChannel = Promise.method(function(channel, peer) {
+      // add peer to channel list of peers, if it's not already there
+      if (!_.some(channel.peers, { id: peer.id })) {
+        channel.peers.add(peer.id);
+      }
+
+      // then save, promises are weird
+      return Promise.promisify(channel.save, channel)()
+        .then(function(channel) {
+          return [channel, peer];
+        });
+    });
+
+    checkChannel(channelId)
+      .spread(createPeer)
+      .spread(addToChannel)
+      .spread(function(channel, peer) {
 	// subscribe them
 	Peer.subscribe(req.socket, peer);
+        Channel.subscribe(req.socket, channel, 'message');
+
+        // message everyone a little status update
+        Channel.message(channel, { type: 'status', live: channel.isLive(), numPeers: channel.peers.length });
 
 	return res.json(peer);
       })
       .error(function(err) {
-        sails.log.error('PeerController#create: DB error', e);
+        sails.log.error('PeerController#create: DB error', err);
         return res.serverError('DB error');
       })
-      .catch(Error, function(e) {
-        sails.log.error('PeerController#create: Internal server error', e);
+      .catch(Error, function(err) {
+        sails.log.error('PeerController#create: Internal server error', err);
         return res.serverError('Internal server error');
       })
-      .catch(function(e) {
+      .catch(function(err) {
 	return res.serverError('Other internal server error');
       });
   },
@@ -100,7 +121,7 @@ var PeerController = {
             return Promise.reject(res.notFound('Can not destroy peer that does not exist'));
 	  }
 
-	  if (peer.socketId != socketId) {
+	  if (peer.socketId !== socketId) {
             sails.log.warn('Socket', socketId, 'requested to destroy peer', peerId, 'that is not owned by him');
             return Promise.reject(res.forbidden('Can not destroy peers not your own'));
 	  }
@@ -116,18 +137,36 @@ var PeerController = {
 	});
     });
 
+    var removeFromChannel = Promise.method(function(peer) {
+      return Channel.findOneById(peer.channel)
+        .populate('peers')
+        .then(function(channel) {
+          if (!channel) {
+            sails.log.warn('Socket', socketId, 'requested to destroy peer', peerId, 'for nonexistent channel', peer.channel);
+            return Promise.reject(res.notFound('Can not remove you as a peer from a channel that does not exist'));
+          }
+
+          // remove peer from channel list of peers, if it's there (?!)
+          if (_.some(channel.peers, { id: peer.id })) {
+            channel.peers.remove(peer.id);
+          }
+
+          return Promise.promisify(channel.save, channel)()
+            .then(function(channel) {
+              return [channel, peer];
+            });
+        });
+    });
+
     findPeer(peerId)
-      .then(function(peer) {
-	// destroy it
-	return Peer.destroy({ id: peer.id })
-          .then(function() {
-            return peer;
-          });
-      })
-      .then(function(peer) {
-	// publicate his death
-	Peer.publishDestroy(peer.id, null, { previous: peer });
-	return peer;
+      .spread(destroyPeer)
+      .spread(removeFromChannel)
+      .spread(function(channel, peer) {
+        // message everyone a little status update
+        Channel.message(channel, { type: 'status', live: channel.isLive(), numPeers: channel.peers.length });
+
+        Peer.publishDestroy(peer.id, null, { previous: peer });
+        return res.ok();
       })
       .error(function(err) {
         sails.log.error('PeerController#destroy: DB error', e);

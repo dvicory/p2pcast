@@ -64,11 +64,32 @@ function addRemotePeerConnection(addedPeerConn) {
 }
 
 function removeRemotePeerConnection(removedPeerConn) {
-  if (!_pcManager.exists(removedPeerConn)) return;
+  console.info('removing remote peer conn', removedPeerConn);
 
   if (_pcManager.exists(removedPeerConn)) {
     var pc = _pcManager.get(removedPeerConn);
     pc.destroy();
+
+    _pcManager.remove(removedPeerConn);
+  }
+
+  // we have no more upstream!
+  if (_pcManager.getParents().length === 0 && _localPeerModel) {
+    console.info('handling reconnect');
+
+    return createLocalPeerConnection(socket, _pcManager, _localPeerModel)
+      .then(function(peerConn) {
+        peerConn.pc.on('addStream', function(event) {
+          setUpstream(event.stream);
+          $('#localVideo')[0].src = URL.createObjectURL(event.stream);
+        });
+      })
+      .error(function(err) {
+        console.error('error in bootstrapping', err);
+      })
+      .catch(function(err) {
+        console.error('throw in bootstrapping', err);
+      });
   }
 }
 

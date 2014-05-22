@@ -1,9 +1,15 @@
 <div class="row">
   <!-- Flash message -->
   <% if( !_.isUndefined(req.session.flash) && !_.isUndefined(req.session.flash.msg)) { %>
-      <div class="alert alert-success" id="flash">
-        <p class="lead"><strong><%- req.flash('msg') %></strong></p>
-      </div>
+    <div class="alert alert-success flash">
+      <p class="lead"><%= req.flash('msg') %></p>
+    </div>
+  <% } %>
+
+  <% if( !_.isUndefined(req.session.flash) && !_.isUndefined(req.session.flash.errors)) { %>
+    <div class="alert alert-danger flash">
+      <p class="lead"><%= JSON.stringify(req.flash('errors')) %></p>
+    </div>
   <% } %>
   <div class="col-md-5 col-md-push-1">
     <h2><%= req.session.user.name %></h2>
@@ -11,18 +17,18 @@
     <div class="login-form">
       <form role="form" action="/user/update/<%= req.session.user.id %>" method="post">
         <fieldset class='textbox' style="padding-top:10px; padding-bottom:10px;">
-            <label for="userInputName">Name: </label>
-            <input type="name" class="form-control" name="name" id="userInputName" placeholder="New Name" required>
+          <label for="userInputName">Name: </label>
+          <input type="name" class="form-control" name="name" id="userInputName" placeholder="New Name" required>
 
-            <label for="userInputEmail">Email address: </label>
-            <input type="email" class="form-control" name="email" id="userInputEmail" placeholder="New Email" required>
+          <label for="userInputEmail">Email address: </label>
+          <input type="email" class="form-control" name="email" id="userInputEmail" placeholder="New Email" required>
 
-            <label for="userInputPassword">New Password: </label>
-            <input type="password" class="form-control" name="password" id="userInputPassword" placeholder="New Password" required>
+          <label for="userInputPassword">New Password: </label>
+          <input type="password" class="form-control" name="password" id="userInputPassword" placeholder="New Password" required>
 
-            <label for="userInputPassword" id="userProfilePassword">Confirm Password: </label>
-            <input type="password" class="form-control"  placeholder="Confirm Password" required><br>
-            <button type="submit" class="btn btn-danger" id="userProfileUpdate">Save</button>
+          <label for="userInputPassword" id="userProfilePassword">Confirm Password: </label>
+          <input type="password" class="form-control"  placeholder="Confirm Password" required><br>
+          <button type="submit" class="btn btn-danger" id="userProfileUpdate">Save</button>
         </fieldset>
       </form>
     </div>
@@ -37,101 +43,56 @@
         </tr>
       </thead>
       <% if(channels.length > 0) { %>
-      <tr>
-        <% _.each(channels, function (channel) { %>
-        <% if (!channel.owner) return true; %>
-          <td style="vertical-align: middle;"><a href="/c/<%= channel.name %>"><%= channel.name %></a></td>
-          <td>
-            <div class="btn-group btn-group-sm pull-right">
-              <button class="btn btn-info btn-embossed modifyChannel" data-channel-id="<%= channel.id %>" data-channel-name="<%= channel.name %>" data-channel-description="<%= channel.description %>">
-                <span class="glyphicon glyphicon-cog"></span>
-                  Modify
-              </button>
-
-              <form class="btn-group btn-group-sm deleteForm" role="form" action="/channel/destroy" method="post">
-                <input type="hidden" name="id" value="<%= channel.id %>">
-                <button type="submit" class="btn btn-danger btn-embossed">
-                  <span class="glyphicon glyphicon-trash"></span>
-                    Delete
-                </button>
-              </form>
-
-            </div>
-          </td>
-      </tr>
-      <tr>
-        <form class="form-horizontal" role="form" action="/channel/create" method="post">
-          <td>
-            <input type="text" class="form-control input-sm" id="name" name="name" placeholder="Enter channel name">
-          </td>
-          <td>
-            <div class="btn-group btn-group-sm pull-right">
-              <button type="submit" name="broadcaster" class="btn btn-primary btn-embossed btn-sm">Create</button>
-            </div>
-          </td>
-        </form>
-      </tr>
-      <% }) %>
-      <% } else { %>
         <tr>
+          <% _.each(channels, function (channel) { %>
+            <% if (!channel.owner) return true; %>
+            <td style="vertical-align: middle;"><a href="/c/<%= channel.name %>"><%= channel.name %></a></td>
+            <td>
+              <div class="btn-group btn-group-sm pull-right">
+                <button class="btn btn-info btn-embossed modifyChannel" data-channel-id="<%= channel.id %>" data-channel-name="<%= channel.name %>" data-channel-description="<%= channel.description %>">
+                  <span class="glyphicon glyphicon-cog"></span>
+                  Modify
+                </button>
+                  <form class="btn-group btn-group-sm deleteForm" role="form" action="/channel/destroy" method="post">
+                    <input type="hidden" name="id" value="<%= channel.id %>">
+                    <button type="submit" class="btn btn-danger btn-embossed">
+                      <span class="glyphicon glyphicon-trash"></span>
+                      Delete
+                    </button>
+                  </form>
+                </div>
+              </td>
+          </tr>
+          <% }) %>
+          <tr>
             <form class="form-horizontal" role="form" action="/channel/create" method="post">
-                  <td><input type="text" class="form-control input-sm" id="name" name="name" placeholder="Enter channel name"></td>
-                  <td>
-                    <div class="btn-group btn-group-sm pull-right">
-                      <button type="submit" name="broadcaster" class="btn btn-primary btn-embossed btn-sm">Create</button>
-                    </div>
-                  </td>
+              <td><input type="text" class="form-control input-sm" id="name" name="name" placeholder="Enter channel name"></td>
+              <td>
+                <div class="btn-group btn-group-sm pull-right">
+                  <button type="submit" name="broadcaster" class="btn btn-primary btn-embossed btn-sm">Create New</button>
+                </div>
+              </td>
             </form>
-        </tr>
-      <% } %>
-    </table>
-  </div><!-- Channel List -->
+          </tr>
+        <% } else { %>
+          <tr>
+            <form class="form-horizontal" role="form" action="/channel/create" method="post">
+              <td><input type="text" class="form-control input-sm" id="name" name="name" placeholder="Enter channel name"></td>
+              <td>
+                <div class="btn-group btn-group-sm pull-right">
+                  <button type="submit" name="broadcaster" class="btn btn-primary btn-embossed btn-sm">Create New</button>
+                </div>
+              </td>
+            </form>
+          </tr>
+        <% } %>
+      </table>
+    </div><!-- Channel List -->
 
-  <!-- Modal for channel info editting -->
-  <div class="modal fade" id="channelModify" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-          <h4 class="modal-title" id="myModalLabel">Update Channel Info</h4>
-        </div>
-        <div class="modal-body">
-          <form role="form" id="updateChannelForm" action="/channel/update" method="post">
-            <fieldset class='textbox' style="padding:0px; ">
-              <div class="col-sm-8 form-group">
-                <label for="channelName">Channel Name: </label>
-                <input type="name" class="form-control" name="name" id="channelName" placeholder="Enter name" required>
+    <!-- Modal for channel info editting -->
+    <%- partial('../partials/channel_modify.ejs') %>
 
-                <label for="channelDescription">Channel Description: </label>
-                <textarea class="form-control" name="description" id="channelDescription" placeholder="Enter description" required></textarea>
-
-                <hr class="divider">
-
-                <button type="submit" class="btn btn-primary" id="channelInfoUpdate">Save Changes</button>
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-              </div>
-            </fieldset>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal for channel delete confirmation -->
-  <div class="modal fade" id="channelDelete" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-          <h4 class="modal-title" id="myModalLabel">Are you sure you want to delete this channel?</h4>
-        </div>
-        <div class="modal-body">
-          <button type="button" class="btn btn-primary" id="confirmDelete">Confirm</button>
-          <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-        </div>
-      </div>
-    </div>
-  </div>
+    <!-- Modal for channel delete confirmation -->
+    <%- partial('../partials/channel_delete.ejs') %>
 
 </div>
-

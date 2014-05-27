@@ -2,9 +2,14 @@
 #localVideoContainer {
 	width:640px;
 	height:480px;
-	background-color:#ccc;
+	background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.75));
 	margin-bottom:10px;
 	overflow:hidden;
+}
+
+#modifyChannel {
+	padding-left: 10px;
+	font-size: 24px;
 }
 
 #localVideo {

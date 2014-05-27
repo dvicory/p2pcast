@@ -3,6 +3,9 @@
     <h3>
       <span id="liveness-indicator" class="label palette-asbestos">&hellip;</span>
       <%= (channel.name || "Not Found") %>
+      <% if (!_.isUndefined(channel) && !_.isUndefined(req.session.user) && channel.owner.id === req.session.user.id) { %>
+        <a href="#" id="modifyChannel" data-channel-id="<%= channel.id %>" data-channel-name="<%= channel.name %>" data-channel-description="<%= channel.description %>"><span class="fui-new"></span></a>
+      <% } %>
     </h3>
     <% if ( !_.isUndefined(channel) && channel.id) { %>
       <span id="currentChannelId" style="display:none;"><%= channel.id %></span>
@@ -12,7 +15,7 @@
          Broadcasters will have option to click on video container & given option to start video
     -->
     <% if (!_.isUndefined(channel) && !_.isUndefined(req.session.user) && channel.owner.id === req.session.user.id) { %>
-      <div onclick="addVideo(); this.onclick=null;" id="localVideoContainer">
+      <div id="localVideoContainer">
         <div class="container-fluid">
           <button disabled type="button" class="btn btn-lg btn-embossed btn-danger" id="addVideo">
             <span class="fui-video"></span> Start Video</button>
@@ -34,3 +37,5 @@
     -->
   </div>
 </div>
+
+<%- partial('../partials/channel_modify.ejs') %>

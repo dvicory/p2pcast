@@ -116,6 +116,8 @@ function handleChannelMessage(data) {
             .then(function(peerConn) {
               peerConn.pc.on('addStream', function(event) {
                 setUpstream(event.stream);
+                $('#addVideo').hide();
+                $('#localVideo').fadeIn(800);
                 $('#localVideo')[0].src = URL.createObjectURL(event.stream);
               });
             })
@@ -140,6 +142,8 @@ function handleChannelMessage(data) {
                 _localPeerModel = peerModel;
                 _localPeerModel.stream = stream;
                 setUpstream(stream);
+                $('#addVideo').hide();
+                $('#localVideo').fadeIn(800);
                 $('#localVideo')[0].src = URL.createObjectURL(stream);
               })
               .error(function(err) {

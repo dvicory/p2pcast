@@ -1,8 +1,21 @@
 /* Styles for /channel/show page */
 #localVideoContainer {
 	width:640px;
-	height:360px;
+	height:480px;
 	background-color:#ccc;
 	margin-bottom:10px;
 	overflow:hidden;
+}
+
+#localVideo {
+	display: none;
+}
+
+#addVideo {
+	display: block;
+	margin: 0 auto;
+	margin-top: 207px;
+	margin-right: auto;
+	margin-left: auto;
+	font-size: 32px;
 }

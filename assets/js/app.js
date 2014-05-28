@@ -41,6 +41,7 @@ var _setupCallbacks = false;
 var _channelId = null;
 var _isBroadcaster = false;
 var _isLive = undefined;
+var _isSourceBroadcaster = false;
 
 // object of your local peer and peer connection from server
 var _localPeerModel = null;
@@ -90,22 +91,27 @@ function removeRemotePeerConnection(removedPeerConn) {
   }
 
   // we have no more upstream!
-  if (_pcManager.getParents().length === 0 && !_isBroadcaster && _localPeerModel) {
-    console.info('handling reconnect');
+  if (_pcManager.getParents().length === 0 && !_isSourceBroadcaster && _localPeerModel) {
+    var reconnectTimeout = _.random(0, 150);
+    console.info('reconnect required detected, executing in random backoff of ' + reconnectTimeout + 'ms');
 
-    return createLocalPeerConnection(socket, _pcManager, _localPeerModel)
-      .then(function(peerConn) {
-        peerConn.pc.on('addStream', function(event) {
-          setUpstream(event.stream);
-          $('#localVideo')[0].src = URL.createObjectURL(event.stream);
+    setTimeout(function(socket, _pcManager, _localPeerModel) {
+      console.info('reconnect going...');
+
+      return createLocalPeerConnection(socket, _pcManager, _localPeerModel)
+        .then(function(peerConn) {
+          peerConn.pc.on('addStream', function(event) {
+            setUpstream(event.stream);
+            $('#localVideo')[0].src = URL.createObjectURL(event.stream);
+          });
+        })
+        .error(function(err) {
+          console.error('error in bootstrapping', err);
+        })
+        .catch(function(err) {
+          console.error('throw in bootstrapping', err);
         });
-      })
-      .error(function(err) {
-        console.error('error in bootstrapping', err);
-      })
-      .catch(function(err) {
-        console.error('throw in bootstrapping', err);
-      });
+    }, reconnectTimeout, socket, _pcManager, _localPeerModel);
   }
 }
 
@@ -135,6 +141,7 @@ function handleChannelMessage(data) {
             .then(function(peerConn) {
               peerConn.pc.on('addStream', function(event) {
                 setUpstream(event.stream);
+                _isSourceBroadcaster = false;
                 $('#localVideo')[0].src = URL.createObjectURL(event.stream);
                 $('#addVideo').hide();
                 $('#localVideo').fadeIn(800);
@@ -160,6 +167,7 @@ function handleChannelMessage(data) {
               .spread(function(peerModel, stream) {
                 _localPeerModel = peerModel;
                 _localPeerModel.stream = stream;
+                _isSourceBroadcaster = true;
                 setUpstream(stream);
                 $('#peerId').text(_localPeerModel.id);
                 $('#localVideo')[0].src = URL.createObjectURL(stream);

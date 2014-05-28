@@ -9,6 +9,7 @@
  */
 
 var _ = require('lodash');
+var Promise = require('bluebird');
 
 module.exports.sockets = {
 
@@ -55,6 +56,14 @@ module.exports.sockets = {
           Peer.destroy({ id: peer.id })
             .then(function() {
               Peer.publishDestroy(peer.id, null, { previous: previousPeer });
+              return [peer, Channel.findOne({ id: peer.channel }).populate('peers')];
+            })
+            .spread(function(peer, channel) {
+              if (_.some(channel.peers, { id: peer.id })) {
+                channel.peers.remove(peer.id);
+              }
+
+              return Promise.promisify(channel.save, channel)();
             });
         });
       })

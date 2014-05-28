@@ -129,6 +129,7 @@ function handleChannelMessage(data) {
           createOrGetPeer(_channelId, false)
             .then(function(peerModel) {
               _localPeerModel = peerModel;
+              $('#peerId').text(_localPeerModel.id);
               return createLocalPeerConnection(socket, _pcManager, peerModel);
             })
             .then(function(peerConn) {
@@ -160,6 +161,7 @@ function handleChannelMessage(data) {
                 _localPeerModel = peerModel;
                 _localPeerModel.stream = stream;
                 setUpstream(stream);
+                $('#peerId').text(_localPeerModel.id);
                 $('#localVideo')[0].src = URL.createObjectURL(stream);
                 $('#addVideo').hide();
                 $('#localVideo').fadeIn(800);

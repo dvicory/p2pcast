@@ -31,31 +31,19 @@ module.exports.routes = {
   },
 
   // Custom routes here...
-  '/login': {
-    controller: 'Auth',
-    action: 'login'
-  },
+  '/login': 'Auth.login',
+  '/logout': 'Auth.logout',
 
-  '/logout': {
-    controller: 'Auth',
-    action: 'logout'
-  },
+  'get /channel': 'Channel.index',
+  'get /channels': 'Channel.index',
 
-  'get /channel/:id': {
-    controller: 'Channel',
-    action: 'show'
-  },
+  'get /channel/:id': 'Channel.show',
+  'get /c/:id-*': 'Channel.show',
+  'get /c/:id': 'Channel.show',
 
-  'get /channel/:id/tree': {
-    controller: 'Channel',
-    action: 'tree'
-  },
-
-  'get /c/:name': {
-    controller: 'Channel',
-    action: 'show'
-  }
-
+  'get /channel/:id/tree': 'Channel.tree',
+  'get /c/:id/tree': 'Channel.tree',
+  'get /c/:id-*/tree': 'Channel.tree'
 
   // If a request to a URL doesn't match any of the custom routes above, it is matched
   // against Sails route blueprints.  See `config/blueprints.js` for configuration options

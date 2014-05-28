@@ -17,7 +17,22 @@ global.socket = socket;
 // and promisify...
 Promise.promisifyAll(socket);
 
-const getUserMediaConfig = { video: true, audio: false };
+const getUserMediaConfig = {
+  audio: false,
+
+  video: {
+    mandatory: {
+      minFrameRate: 15,
+      maxFrameRate: 30,
+      minWidth: 1280,
+      minHeight: 720,
+      maxWidth: 1280,
+      maxHeight: 720
+    },
+
+    optional: []
+  }
+};
 
 console.log('Connecting Socket.io to Sails.js...');
 

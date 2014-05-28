@@ -1,7 +1,7 @@
 /* Styles for /channel/show page */
 #localVideoContainer {
-	width:640px;
-	height:480px;
+	width: 640px;
+	height: 360px;
 	background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.75));
 	margin-bottom:10px;
 	overflow:hidden;
@@ -19,7 +19,7 @@
 #addVideo {
 	display: block;
 	margin: 0 auto;
-	margin-top: 207px;
+	margin-top: 147px;
 	margin-right: auto;
 	margin-left: auto;
 	font-size: 32px;

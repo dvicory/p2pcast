@@ -75,7 +75,7 @@ function removeRemotePeerConnection(removedPeerConn) {
   }
 
   // we have no more upstream!
-  if (_pcManager.getParents().length === 0 && _localPeerModel) {
+  if (_pcManager.getParents().length === 0 && !_isBroadcaster && _localPeerModel) {
     console.info('handling reconnect');
 
     return createLocalPeerConnection(socket, _pcManager, _localPeerModel)

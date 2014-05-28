@@ -55,11 +55,12 @@ function addRemotePeerConnection(addedPeerConn) {
   PeerConnection.createRemote(socket, addedPeerConn)
     .then(function(newPc) {
       _pcManager.set(newPc);
-      newPc.startConnection();
 
       var upstream = getUpstream();
       console.info('got upstream', upstream, 'for remote peer connection', newPc.id);
       newPc.pc.addStream(upstream);
+
+      newPc.startConnection();
     });
 }
 
@@ -108,6 +109,8 @@ function handleChannelMessage(data) {
         // so if we are now live, awesome
         // we'll become a peer right away
         if (data.live) {
+          $('#addVideo').attr('disabled', 'disabled');
+
           createOrGetPeer(_channelId, false)
             .then(function(peerModel) {
               _localPeerModel = peerModel;
@@ -116,9 +119,9 @@ function handleChannelMessage(data) {
             .then(function(peerConn) {
               peerConn.pc.on('addStream', function(event) {
                 setUpstream(event.stream);
+                $('#localVideo')[0].src = URL.createObjectURL(event.stream);
                 $('#addVideo').hide();
                 $('#localVideo').fadeIn(800);
-                $('#localVideo')[0].src = URL.createObjectURL(event.stream);
               });
             })
             .error(function(err) {
@@ -142,9 +145,9 @@ function handleChannelMessage(data) {
                 _localPeerModel = peerModel;
                 _localPeerModel.stream = stream;
                 setUpstream(stream);
+                $('#localVideo')[0].src = URL.createObjectURL(stream);
                 $('#addVideo').hide();
                 $('#localVideo').fadeIn(800);
-                $('#localVideo')[0].src = URL.createObjectURL(stream);
               })
               .error(function(err) {
                 console.error('error in bootstrapping', err);

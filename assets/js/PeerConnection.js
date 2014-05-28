@@ -98,6 +98,7 @@ PeerConnection.createLocal = function createLocal(socket, init) {
   return Promise.join(newPc._create(), getRTCConfigAsync())
     .spread(function(newPc, rtcConfig) {
       newPc._rtcConfig = rtcConfig;
+      newPc.pc = new RTCConnection(newPc._rtcConfig, rtcConstraints);
       return newPc;
     });
 };
@@ -115,6 +116,7 @@ PeerConnection.createRemote = function createRemote(socket, id, init) {
   return Promise.join(Promise.cast(newPc), getRTCConfigAsync())
     .spread(function(newPc, rtcConfig) {
       newPc._rtcConfig = rtcConfig;
+      newPc.pc = new RTCConnection(newPc._rtcConfig, rtcConstraints);
       return newPc;
     });
 };
@@ -184,7 +186,7 @@ PeerConnection.prototype.setupConnectionBasics = function setupConnectionBasics(
 
   var that = this;
 
-  this.pc = new RTCConnection(this._rtcConfig, rtcConstraints);
+  //this.pc = new RTCConnection(this._rtcConfig, rtcConstraints);
 
   //this.pc.on('*', function(event, data) { console.debug('debug', event, data); });
 

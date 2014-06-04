@@ -39,18 +39,30 @@ console.log('Connecting Socket.io to Sails.js...');
 var _setupCallbacks = false;
 
 var _channelId = null;
-var _isBroadcaster = false;
+//var _isBroadcaster = false;
+var _canBroadcast = false;
 var _isLive = undefined;
 var _isSourceBroadcaster = false;
+var _reconnectTimeout = null;
 
 // object of your local peer and peer connection from server
 var _localPeerModel = null;
+global._localPeerModel = _localPeerModel;
+
+function resetGlobalState() {
+  _canBroadcast = false;
+  _isLive = undefined;
+  _isSourceBroadcaster = false;
+  _localPeerModel = null;
+  URL.revokeObjectURL($('#localVideo')[0].src);
+}
 
 // stores all peer connections
 var _pcManager = new PeerConnectionManager();
 global._pcManager = _pcManager;
 
 var _upstream = null;
+global._upstream = _upstream;
 
 function setUpstream(stream) {
   console.info('SETTING UPSTREAM', stream);
@@ -76,7 +88,8 @@ function addRemotePeerConnection(addedPeerConn) {
       console.info('got upstream', upstream, 'for remote peer connection', newPc.id);
       newPc.pc.addStream(upstream);
 
-      newPc.startConnection();
+      setTimeout(_.bind(newPc.startConnection, newPc), 100);
+      setTimeout(_.bind(newPc.finalize, newPc), 200);
     });
 }
 
@@ -91,26 +104,49 @@ function removeRemotePeerConnection(removedPeerConn) {
   }
 
   // we have no more upstream!
-  if (_pcManager.getParents().length === 0 && !_isSourceBroadcaster && _localPeerModel) {
-    var reconnectTimeout = _.random(0, 150);
+  if (_pcManager.getParents().length === 0 && !_isSourceBroadcaster && _localPeerModel && !_reconnectTimeout) {
+    URL.revokeObjectURL($('#localVideo')[0].src);
+
+    var reconnectTimeout = _.random(0, 50);
     console.info('reconnect required detected, executing in random backoff of ' + reconnectTimeout + 'ms');
 
-    setTimeout(function(socket, _pcManager, _localPeerModel) {
-      console.info('reconnect going...');
+    _reconnectTimeout = setTimeout(function(socket, _pcManager, _localPeerModel) {
+      _reconnectTimeout = null;
 
-      return createLocalPeerConnection(socket, _pcManager, _localPeerModel)
-        .then(function(peerConn) {
-          peerConn.pc.on('addStream', function(event) {
-            setUpstream(event.stream);
-            $('#localVideo')[0].src = URL.createObjectURL(event.stream);
+      if (_isLive) {
+        console.info('reconnect going...');
+
+        var thatPeerConn;
+
+        return createLocalPeerConnection(socket, _pcManager, _localPeerModel)
+          .then(function(peerConn) {
+            thatPeerConn = peerConn;
+
+            peerConn.pc.on('addStream', function(event) {
+              setUpstream(event.stream);
+              $('#localVideo')[0].src = URL.createObjectURL(event.stream);
+
+              $('#addVideo').hide();
+              $('#localVideo').fadeIn(800);
+
+              peerConn.finalize()
+                .error(function(err) {
+                  console.error('error in finalization bootstrap, removing peer connection', err);
+                  removeRemotePeerConnection(thatPeerConn);
+                });
+            });
+          })
+          .error(function(err) {
+            console.error('error in bootstrapping, removing peer connection', err);
+            removeRemotePeerConnection(thatPeerConn);
+          })
+          .catch(function(err) {
+            console.error('throw in bootstrapping, removing peer connection', err);
+            removeRemotePeerConnection(thatPeerConn);
           });
-        })
-        .error(function(err) {
-          console.error('error in bootstrapping', err);
-        })
-        .catch(function(err) {
-          console.error('throw in bootstrapping', err);
-        });
+      } else {
+        console.info('reconnect was scheduled, but channel offline');
+      }
     }, reconnectTimeout, socket, _pcManager, _localPeerModel);
   }
 }
@@ -124,63 +160,69 @@ function handleChannelMessage(data) {
 
     // do we got live data?
     if (_.has(data, 'live')) {
+      //var livenessChanged = _isLive !== data.live;
+
       // if we were previously not live (like at start)
       // or was offline, we should figure out how to deal with it
       if (!_isLive) {
         // so if we are now live, awesome
         // we'll become a peer right away
-        if (data.live) {
+        // we only want to do this if we are not the source broadcaster
+        if (data.live && !_isSourceBroadcaster) {
           $('#addVideo').attr('disabled', 'disabled');
+
+          var thatPeerConn;
 
           createOrGetPeer(_channelId, false)
             .then(function(peerModel) {
               _localPeerModel = peerModel;
+
               $('#peerId').text(_localPeerModel.id);
+
               return createLocalPeerConnection(socket, _pcManager, peerModel);
             })
             .then(function(peerConn) {
+              thatPeerConn = peerConn;
+
               peerConn.pc.on('addStream', function(event) {
                 setUpstream(event.stream);
-                _isSourceBroadcaster = false;
+
                 $('#localVideo')[0].src = URL.createObjectURL(event.stream);
+
                 $('#addVideo').hide();
                 $('#localVideo').fadeIn(800);
+
+                peerConn.finalize()
+                  .error(function(err) {
+                    console.error('error in finalization bootstrap, removing peer connection', err);
+                    removeRemotePeerConnection(thatPeerConn);
+                  });
               });
             })
             .error(function(err) {
-              console.error('error in bootstrapping', err);
+              console.error('error in bootstrapping, removing peer connection', err);
+              //resetGlobalState();
+              removeRemotePeerConnection(thatPeerConn);
             })
             .catch(function(err) {
-              console.error('throw in bootstrapping', err);
+              console.error('throw in bootstrapping, removing peer connection', err);
+              //resetGlobalState();
+              removeRemotePeerConnection(thatPeerConn);
             });
-        } else if (_isBroadcaster && !data.live) {
+        } else if (_canBroadcast && !data.live) {
           // so if we are not live and are a broadcaster, give the user a chance to become one
           // we'll do this by disabling the addVideo button and handling a click
           $('#addVideo').removeAttr('disabled');
+        }
+      }
 
-          $('#addVideo').one('click', function() {
-            getUserMediaAsync(getUserMediaConfig)
-              .then(function(stream) {
-                _isLive = true; // very important
-                return [createOrGetPeer(_channelId, _isBroadcaster), stream];
-              })
-              .spread(function(peerModel, stream) {
-                _localPeerModel = peerModel;
-                _localPeerModel.stream = stream;
-                _isSourceBroadcaster = true;
-                setUpstream(stream);
-                $('#peerId').text(_localPeerModel.id);
-                $('#localVideo')[0].src = URL.createObjectURL(stream);
-                $('#addVideo').hide();
-                $('#localVideo').fadeIn(800);
-              })
-              .error(function(err) {
-                console.error('error in bootstrapping', err);
-              })
-              .catch(function(err) {
-                console.error('throw in bootstrapping', err);
-              });
-          });
+      // channel was live but went offline
+      if (_isLive && !data.live) {
+        $('#addVideo').removeAttr('disabled');
+        $('#localVideo').hide();
+
+        if (_canBroadcast) {
+          $('#addVideo').fadeIn(800);
         }
       }
 
@@ -207,7 +249,7 @@ function handleChannelMessage(data) {
 
 function setupCallbacks() {
   if (_setupCallbacks) return;
-  else _setupCallbacks = true;
+  _setupCallbacks = true;
 
   socket.post('/channel/subscribe', { id: _channelId }, function gotChannelSubscribe(resp) {
     console.info('got channel subscription', resp);
@@ -273,41 +315,43 @@ function setupCallbacks() {
       break;
     }
   });
-}
 
-function postPeer() {
-  // first, we need to post as a new peer, and store it in local peer
-  var step1 = function(channelId, isBroadcaster) {
-    return new Promise(function(resolve, reject) {
-      socket.post('/peer/create', { channel: channelId, broadcaster: isBroadcaster }, function gotPeerCreate(peerModel) {
-        if (!peerModel.id) {
-          return reject(new Error('Could not create peer model'));
-        }
+  if (_canBroadcast) {
+    $('#addVideo').on('click', function(e) {
+      if (_isLive || _isSourceBroadcaster) {
+        console.warn('broadcaster tried to add video, but channel already online');
+        return false;
+      }
 
-        return resolve(peerModel);
-      });
+      getUserMediaAsync(getUserMediaConfig)
+        .then(function(stream) {
+          //_isLive = true; // very important
+          _isSourceBroadcaster = true;
+          return [createOrGetPeer(_channelId, _canBroadcast), stream];
+        })
+        .spread(function(peerModel, stream) {
+          _localPeerModel = peerModel;
+          _localPeerModel.stream = stream;
+          setUpstream(stream);
+
+          $('#peerId').text(_localPeerModel.id);
+          $('#localVideo')[0].src = URL.createObjectURL(stream);
+
+          $('#addVideo').hide();
+          $('#localVideo').fadeIn(800);
+        })
+        .error(function(err) {
+          console.error('error in bootstrapping', err);
+          _isSourceBroadcaster = false;
+          //resetGlobalState();
+        })
+        .catch(function(err) {
+          console.error('throw in bootstrapping', err);
+          _isSourceBroadcaster = false;
+          //resetGlobalState();
+        });
     });
-  };
-
-  step1(_channelId, _isBroadcaster)
-    .then(function(peerModel) {
-      setupCallbacks();
-
-      _localPeerModel = peerModel;
-      return PeerConnection.createLocal(socket, _pcManager, { model: peerModel });
-    })
-    .then(function(localPeerConn) {
-      console.info('created local peer connection', localPeerConn.id,
-                   'in store?', _pcManager.exists(localPeerConn),
-                   'type?', localPeerConn.type);
-      localPeerConn.startConnection();
-    })
-    .error(function(err) {
-      console.error('postPeer error', err);
-    })
-    .catch(function(e) {
-      console.error('postPeer catch', e);
-    });
+  }
 }
 
 function createOrGetPeer(channelId, isBroadcaster) {
@@ -329,17 +373,6 @@ function createLocalPeerConnection(socket, manager, peerModel) {
       peerConn.startConnection();
       return peerConn;
     });
-}
-
-function injectUserMedia(peerConn) {
-  return getUserMediaAsync(getUserMediaConfig)
-    .then(function(stream) {
-      return [stream, peerConn];
-    });
-}
-
-function addStream(stream, peerConn) {
-  peerConn.pc.addStream(stream);
 }
 
 // Attach a listener which fires when a connection is established:
@@ -376,7 +409,7 @@ socket.on('connect', function socketConnected() {
   if (!_channelId) return;
 
   // we're a broadcaster if this is here
-  if ($('#addVideo').length) _isBroadcaster = true;
+  if ($('#addVideo').length) _canBroadcast = true;
 
   // if we're a broadcaster we're not interested in continuing at this point
   // we'll come back later to add video

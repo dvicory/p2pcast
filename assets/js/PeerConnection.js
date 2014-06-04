@@ -150,6 +150,9 @@ PeerConnection.prototype.destroy = function destroy(reason) {
   // abandon events
   this.pc.releaseGroup(this._group);
 
+  // don't bother with offer anymore
+  if (this._offerTimeout) clearTimeout(this._offerTimeout);
+
   // notify other peer
   this._peerSocket.emit('close', reason);
 
@@ -230,23 +233,23 @@ PeerConnection.prototype.createReceiverConnection = function createReceiverConne
   return;
 };
 
-PeerConnection.prototype.createDataConnection = function createDataConnection(name) {
+PeerConnection.prototype.createDataConnection = function createDataConnection(name, onopen, onmessage, onerror) {
   var that = this;
 
   var dataChannel = this.pc.createDataChannel(name);
 
   console.info('creating data channel (as ' + that.type + ')', dataChannel);
 
-  dataChannel.onerror = function(error) {
-    console.error('data channel for peer connection', that.id, 'had error', error);
+  dataChannel.onopen = onopen || function() {
+    dataChannel.send('HELLO FROM ' + that.type + ' PEER CONN ' + that.id);
   };
 
-  dataChannel.onmessage = function(event) {
+  dataChannel.onmessage = onmessage || function(event) {
     console.log('data channel for peer connection', that.id, 'got message', event);
   };
 
-  dataChannel.onopen = function() {
-    dataChannel.send('HELLO FROM ' + that.type + ' PEER CONN ' + that.id);
+  dataChannel.onerror = onerror || function(error) {
+    console.error('data channel for peer connection', that.id, 'had error', error);
   };
 
   return dataChannel;
@@ -348,15 +351,17 @@ PeerConnection.prototype._onGotOffer = function _onGotOffer(offer) {
     .then(function(answer) {
       console.info('sending answer (as ' + that.type + ')', answer, 'to peer connection', that.id);
       that._peerSocket.emit('answer', answer);
+    });
 
-      // TODO we should only finalize after things are more... stringently good
-      // like only after we are considered stable
-      return that.finalize();
-    })
+  /*
+  // TODO we should only finalize after things are more... stringently good
+  // like only after we are considered stable
+  return that.finalize()
     .then(function(peerFinalization) {
       that.state = peerFinalization.state;
       console.info('setting state (as ' + that.type + ') to', that.state, 'for peer connection', that.id);
     });
+  */
 };
 
 PeerConnection.prototype._onGotAnswer = function _onGotAnswer(answer) {
@@ -364,15 +369,16 @@ PeerConnection.prototype._onGotAnswer = function _onGotAnswer(answer) {
 
   console.info('receiving answer (as ' + this.type + ')', answer, 'from peer connection', this.id);
 
-  this.pc.handleAnswerAsync(answer)
-    .then(function() {
-      // TODO fix up finalization process here too
-      return that.finalize();
-    })
+  return this.pc.handleAnswerAsync(answer);
+
+  /*
+  // TODO fix up finalization process here too
+  return that.finalize()
     .then(function(peerFinalization) {
       that.state = peerFinalization.state;
       console.info('setting state (as ' + that.type + ') to', that.state, 'for peer connection', that.id);
     });
+  */
 };
 
 PeerConnection.prototype._onGotClose = function _onGotClose(reason) {
@@ -404,28 +410,29 @@ PeerConnection.prototype._negotiate = function _negotiate() {
 
   // clear any existing offer
   clearTimeout(this._offerTimeout);
+  this._offerTimeout = null;
 
   // now setup a new timeout to negotiate
   this._offerTimeout = setTimeout(_.bind(this._negotiateAsStable, this), 50);
 };
 
-PeerConnection.prototype._onAddChannel = function(newChannel) {
+PeerConnection.prototype._onAddChannel = function(newChannel, onopen, onmessage, onerror) {
   var that = this;
 
   this._dataChannels.push(newChannel);
 
   console.info('got new data channel (as ' + this.type + ')', newChannel);
 
-  newChannel.onerror = function(error) {
-    console.error('data channel for peer connection', that.id, 'had error', error);
+  newChannel.onopen = onopen || function() {
+    newChannel.send('HELLO FROM ' + that.type + ' PEER CONN ' + that.id);
   };
 
-  newChannel.onmessage = function(event) {
+  newChannel.onmessage = onmessage || function(event) {
     console.log('data channel for peer connection', that.id, 'got message', event);
   };
 
-  newChannel.onopen = function() {
-    newChannel.send('HELLO FROM ' + that.type + ' PEER CONN ' + that.id);
+  newChannel.onerror = onerror || function(error) {
+    console.error('data channel for peer connection', that.id, 'had error', error);
   };
 };
 

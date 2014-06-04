@@ -75,6 +75,7 @@ var Peer = {
       var rootChannelId = _.isObject(root.channel) ? root.channel.id : root.channel;
       root._seen = true;
       root.children = [];
+      root._shadowConnections = _.filter(root.connections, { endpoint: root.id });
 
       var Q = [root];
       var V = Object.create(null);
@@ -109,6 +110,7 @@ var Peer = {
 
               if (peer._seen || peer.id === root.id || peerChannelId !== rootChannelId) return false;
 
+              peer._shadowConnections = _.filter(peer.connections, { endpoint: parent.id });
               if (_.some(peer.connections, _.extend({ endpoint: parent.id }, connectionCriteria))) {
                 peer._seen = true;
                 return true;
@@ -142,7 +144,7 @@ var Peer = {
       // do a breadth-first search to find ourselves a spot
       t.bfs(root, function(node, par) {
         console.info('chooseUpstream checking', node);
-        if (self.id !== node.id && node.children.length <= 1) {
+        if (self.id !== node.id && node.children.length <= 1 && node._shadowConnections.length <= 3) {
           sails.log.silly('Peer#chooseUpstream: found potential upstream', node);
           candidates.push(node);
         }

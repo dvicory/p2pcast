@@ -176,6 +176,7 @@ var PeerConnectionController = {
 
     var getPeerConnectionById = Promise.method(function(peerConnectionId) {
       return PeerConnection.findOneById(peerConnectionId)
+        .populate('initiator')
         .populate('endpoint')
         .then(function(peerConn) {
           if (!peerConn) {
@@ -257,6 +258,7 @@ var PeerConnectionController = {
 
     var getPeerConnectionById = Promise.method(function(peerConnectionId) {
       return PeerConnection.findOneById(peerConnectionId)
+        .populate('initiator')
         .populate('endpoint')
         .then(function(peerConn) {
           if (!peerConn) {
@@ -337,7 +339,7 @@ var PeerConnectionController = {
         }
 
         sails.log.verbose('PeerConnection#finalize: updateState - updating peer connection', peerConn.id,
-                        'with new state', newState, 'from old state', peerConn.state);
+                          'with new state', newState, 'from old state', peerConn.state);
 
         return PeerConnection.update({ id: peerConn.id }, { state: newState })
           .then(function(updated) {
@@ -348,7 +350,8 @@ var PeerConnectionController = {
             updated = updated[0];
 
             // publish update
-            sails.log.verbose('PeerConnection#finalize: updateState - publishing for peer connection id', updated.id, 'new state', updated.state, 'previous', peerConn);
+            sails.log.verbose('PeerConnection#finalize: updateState - publishing for peer connection id', updated.id,
+                              'new state', updated.state, 'previous', peerConn);
 
             PeerConnection.publishUpdate(updated.id, { state: updated.state }, null, { previous: peerConn });
 
@@ -363,7 +366,8 @@ var PeerConnectionController = {
     getPeerConnectionById(peerConnectionId)
       .then(updateState)
       .then(function(peerConn) {
-        sails.log.info('PeerConnection#message: Finalizing peer connection', peerConn.id, 'into state', peerConn.state, 'by request of socket', socketId);
+        sails.log.info('PeerConnection#message: Finalizing peer connection', peerConn.id,
+                       'into state', peerConn.state, 'by request of socket', socketId);
 
         return res.json({ status: 200, state: peerConn.state });
       })

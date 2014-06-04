@@ -1,8 +1,9 @@
 // Javascript for channel page/partials
+/*
 $( "#localVideoContainer" ).click(function() {
       $( "#addVideo" ).click();
 });
-
+*/
 
 // Channel management dialog box
 $('#modifyChannel').on('click',function() {

@@ -9,19 +9,20 @@
 }
 
 .node circle {
-  fill: #fff;
+  fill: orange;
   stroke: steelblue;
-  stroke-width: 1.5px;
+  stroke-width: 4px;
 }
 
 .node text {
-  font: 3 * 10px sans-serif;
+  color: red;
+  font: 24px sans-serif;
 }
 
 .link {
   fill: none;
-  stroke: #ccc;
-  stroke-width: 1.5px;
+  stroke: #333;
+  stroke-width: 4px;
 }
 
 </style>
@@ -36,7 +37,7 @@ var channelID = <%- channel.id %>;
 drawTree();
 
 function drawTree() {
-  treeData.name = "broadcaster";
+  treeData.name = "Geoff";
 
   console.log("tree data = ", treeData);
 
@@ -88,7 +89,7 @@ function drawTree() {
     socket.get('/channel/' + channelID + '/tree', function(updatedJSON) {
       console.log("Updated Json = ", updatedJSON);
       treeData = updatedJSON;
-      treeData.name = "broadcaster";
+      treeData.name = "Geoff";
 
       root = treeData;
       root.x0 = height / 2;
@@ -117,12 +118,12 @@ function drawTree() {
       .on("click", click);
 
     nodeEnter.append("circle")
-      .attr("r", 1e-6)
+      .attr("r", '40px')
       .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
 
     nodeEnter.append("text")
       .attr("x", function(d) { return d.children || d._children ? -10 : 10; })
-      .attr("dy", ".35em")
+      .attr("dy", "1em")
       .attr("text-anchor", function(d) { return d.children || d._children ? "end" : "start"; })
       .text(function(d) { return d.name || d.id; })
       .style("fill-opacity", 1e-6);
@@ -133,7 +134,7 @@ function drawTree() {
       .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
 
     nodeUpdate.select("circle")
-      .attr("r", 4.5)
+      .attr("r", '8px')
       .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
 
     nodeUpdate.select("text")
@@ -146,7 +147,7 @@ function drawTree() {
       .remove();
 
     nodeExit.select("circle")
-      .attr("r", 1e-6);
+      .attr("r", '20px');
 
     nodeExit.select("text")
       .style("fill-opacity", 1e-6);

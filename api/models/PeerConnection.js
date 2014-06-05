@@ -81,7 +81,7 @@ var PeerConnection = {
           sails.log.warn('PeerConnection#checkEstablished: connection', peerConn.id,
                          'not updated since', lastUpdate, 'retrying...');
 
-          var checkTimeout = _.random(4000, 5000);
+          var checkTimeout = _.random(9000, 10000);
           setTimeout(PeerConnection.checkEstablished, checkTimeout, peerConn.id, peerConn.updatedAt, numChecks);
           return null;
         }
@@ -113,7 +113,7 @@ var PeerConnection = {
     sails.log.info('PeerConnection#create: values', values);
 
     // check somewhere between 4s and 5s
-    var checkTimeout = _.random(4000, 5000);
+    var checkTimeout = _.random(9000, 10000);
     setTimeout(PeerConnection.checkEstablished, checkTimeout, values.id, values.createdAt, 0);
 
     cb();
